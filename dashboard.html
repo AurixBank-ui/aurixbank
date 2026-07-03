@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  .chart-wrap{ height:220px; }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="appshell">
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <nav>
+      <a href="dashboard.html" class="active"><span class="ic">◆</span>Dashboard</a>
+      <a href="accounts.html"><span class="ic">▤</span>Accounts</a>
+      <a href="transfers.html"><span class="ic">⇄</span>Transfers</a>
+      <a href="billpayments.html"><span class="ic">▦</span>Bill Payments</a>
+      <a href="cards.html"><span class="ic">▭</span>Cards</a>
+      <a href="#"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="#"><span class="ic">%</span>Loans</a>
+      <a href="#"><span class="ic">⚑</span>Notifications</a>
+      <a href="#" id="profile-nav-link"><span class="ic">◎</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" id="logout-link">Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open menu">☰</button>
+      <div class="topbar-search">
+        <input type="text" placeholder="Search transactions, accounts...">
+      </div>
+      <div class="topbar-right">
+        <span class="bell">⚑<span class="dotbadge"></span></span>
+        <div class="avatar-btn" id="topbar-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content-pad">
+
+      <div class="welcome-row">
+        <div>
+          <h1 id="welcome-heading">Welcome back</h1>
+          <div class="lastlogin" id="lastlogin-text">Loading account…</div>
+        </div>
+      </div>
+
+      <div class="balance-hero reveal">
+        <div>
+          <div class="lbl">Total balance</div>
+          <div class="amt" id="total-balance">$0<span class="cents">.00</span></div>
+        </div>
+        <div class="qa-row">
+          <a href="transfers.html" class="qa-btn"><span class="ic">⇄</span>Transfer</a>
+          <a href="billpayments.html" class="qa-btn"><span class="ic">▦</span>Pay a bill</a>
+          <a href="cards.html" class="qa-btn"><span class="ic">▭</span>Freeze card</a>
+          <a href="#" class="qa-btn"><span class="ic">⎘</span>Deposit cheque</a>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div>
+          <div class="card reveal">
+            <div class="card-head">
+              <h3>Recent transactions</h3>
+              <a href="accounts.html">View all</a>
+            </div>
+            <div id="txn-list"></div>
+          </div>
+
+          <div class="card reveal">
+            <div class="card-head">
+              <h3>Spending, last 3 months</h3>
+            </div>
+            <div class="chart-wrap"><canvas id="spend-chart"></canvas></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card reveal">
+            <div class="card-head"><h3>Accounts</h3></div>
+            <div class="acct-row">
+              <div>
+                <div class="name">Checking</div>
+                <div class="sub">••••</div>
+              </div>
+              <div class="bal" id="checking-balance">$0.00</div>
+            </div>
+            <div class="acct-row">
+              <div>
+                <div class="name">Savings</div>
+                <div class="sub">••••</div>
+              </div>
+              <div class="bal" id="savings-balance">$0.00</div>
+            </div>
+          </div>
+
+          <div class="card reveal">
+            <div class="card-head"><h3>Loans</h3></div>
+            <div class="empty-state">
+              <div class="ic">%</div>
+              <p>No active loans. Use the loan calculator to see what you could borrow.</p>
+            </div>
+          </div>
+
+          <div class="card reveal">
+            <div class="card-head"><h3>Investments</h3></div>
+            <div class="empty-state">
+              <div class="ic">↗</div>
+              <p>You haven't opened an investment plan yet.</p>
+            </div>
+          </div>
+
+          <div class="card reveal">
+            <div class="card-head"><h3>Notifications</h3></div>
+            <div id="notif-list">
+              <div class="notif-row">
+                <div class="dotmark"></div>
+                <div>
+                  <div class="txt">New sign-in to your account</div>
+                  <div class="time">Just now</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  function money(n) {
+    const parts = Math.abs(n).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return { whole: parts[0], cents: parts[1] };
+  }
+  function initials(first, last) {
+    return `${(first || 'A')[0]}${(last || '')[0] || ''}`.toUpperCase();
+  }
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days < 1) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days} days ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} mo ago`;
+    return `${Math.floor(months / 12)} yr ago`;
+  }
+
+  // Scroll reveal — runs independently of data loading, so a Firestore/Chart
+  // error can never leave the cards permanently invisible.
+  document.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transitionDelay = `${i * 70}ms`;
+  });
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+  // Safety net: if something goes wrong before the observer fires, force
+  // everything visible after 2s rather than leaving the page blank.
+  setTimeout(() => {
+    document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible'));
+  }, 2000);
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    let profile = {}, accounts = { checkingBalance: 0, savingsBalance: 0 }, txns = [];
+    let loadFailed = false;
+
+    try {
+      const [userSnap, acctSnap, txnSnap] = await Promise.all([
+        getDoc(doc(db, 'users', user.uid)),
+        getDoc(doc(db, 'accounts', user.uid)),
+        getDoc(doc(db, 'transactions', user.uid))
+      ]);
+      profile = userSnap.exists() ? userSnap.data() : {};
+      accounts = acctSnap.exists() ? acctSnap.data() : accounts;
+      txns = txnSnap.exists() ? (txnSnap.data().items || []) : [];
+    } catch (e) {
+      console.error('Could not load account data:', e);
+      loadFailed = true;
+    }
+
+    // Welcome header
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('welcome-heading').textContent = `${greeting}, ${profile.firstName || ''}.`;
+    document.getElementById('lastlogin-text').textContent = loadFailed
+      ? 'Could not load your account data. Check the browser console (F12) for details.'
+      : 'Last login: just now';
+
+    // Avatars
+    const avatarInitials = initials(profile.firstName, profile.lastName);
+    const topbarAvatar = document.getElementById('topbar-avatar');
+    if (profile.profilePictureURL) {
+      topbarAvatar.innerHTML = `<img src="${profile.profilePictureURL}" alt="">`;
+    } else {
+      topbarAvatar.textContent = avatarInitials;
+    }
+
+    // Balances
+    const total = (accounts.checkingBalance || 0) + (accounts.savingsBalance || 0);
+    const totalM = money(total);
+    document.getElementById('total-balance').innerHTML = `$${totalM.whole}<span class="cents">.${totalM.cents}</span>`;
+    document.getElementById('checking-balance').textContent = `$${money(accounts.checkingBalance || 0).whole}.${money(accounts.checkingBalance || 0).cents}`;
+    document.getElementById('savings-balance').textContent = `$${money(accounts.savingsBalance || 0).whole}.${money(accounts.savingsBalance || 0).cents}`;
+
+    // Recent transactions (most recent first, top 6)
+    const recent = [...txns].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
+    const txnList = document.getElementById('txn-list');
+    if (recent.length === 0) {
+      txnList.innerHTML = `<div class="empty-state"><div class="ic">◈</div><p>No transactions yet.</p></div>`;
+    } else {
+      txnList.innerHTML = recent.map(t => {
+        const isPos = t.amount >= 0;
+        const m = money(t.amount);
+        return `
+          <div class="txn-row">
+            <div class="who">
+              <span class="desc">${t.description}</span>
+              <span class="meta">${timeAgo(t.date)} · ${t.category}</span>
+            </div>
+            <div class="txn-amt ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : '−'} $${m.whole}.${m.cents}</div>
+          </div>`;
+      }).join('');
+    }
+
+    // Spending chart: last 3 months, sum of negative (spend) transactions per month
+    const now = new Date();
+    const monthLabels = [];
+    const monthTotals = [];
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthLabels.push(d.toLocaleDateString('en-US', { month: 'short' }));
+      const monthSpend = txns
+        .filter(t => t.amount < 0)
+        .filter(t => {
+          const td = new Date(t.date);
+          return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
+        })
+        .reduce((s, t) => s + Math.abs(t.amount), 0);
+      monthTotals.push(Math.round(monthSpend * 100) / 100);
+    }
+
+    try {
+      new Chart(document.getElementById('spend-chart'), {
+        type: 'bar',
+        data: {
+          labels: monthLabels,
+          datasets: [{
+            data: monthTotals,
+            backgroundColor: '#3E6FA6',
+            borderRadius: 3,
+            maxBarThickness: 34
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#5B6B82', font: { family: 'Inter' } } },
+            y: { grid: { color: 'rgba(30,42,61,0.08)' }, ticks: { color: '#5B6B82', font: { family: 'Inter' } } }
+          }
+        }
+      });
+    } catch (e) {
+      console.error('Chart failed to render:', e);
+    }
+  });
+
+  document.getElementById('logout-link').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = 'login.html';
+  });
+</script>
+
+
+<script>
+  (function() {
+    var menuToggle = document.getElementById('menu-toggle');
+    var appshell = document.querySelector('.appshell');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (menuToggle && appshell) {
+      menuToggle.addEventListener('click', function() {
+        appshell.classList.toggle('sidebar-open');
+      });
+    }
+    if (backdrop && appshell) {
+      backdrop.addEventListener('click', function() {
+        appshell.classList.remove('sidebar-open');
+      });
+    }
+  })();
+</script>
+</body>
+</html>

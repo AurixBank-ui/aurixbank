@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Accounts — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .filter-bar{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:20px; }
+  .filter-bar input[type="text"]{
+    flex:1; min-width:200px; background:var(--panel); border:1px solid var(--line); border-radius:5px;
+    padding:10px 14px; font-size:13.5px; color:var(--paper); outline:none;
+  }
+  .filter-bar input[type="text"]:focus{ border-color:var(--brass); }
+  .filter-bar select{
+    background:var(--panel); border:1px solid var(--line); border-radius:5px;
+    padding:10px 14px; font-size:13.5px; color:var(--paper); outline:none; cursor:pointer;
+  }
+  .filter-bar select:focus{ border-color:var(--brass); }
+  .filter-bar .btn{ padding:10px 18px; font-size:13.5px; white-space:nowrap; }
+
+  .txn-count{ font-size:12.5px; color:var(--slate-dim); margin-bottom:14px; }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="appshell">
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <nav>
+      <a href="dashboard.html"><span class="ic">◆</span>Dashboard</a>
+      <a href="accounts.html" class="active"><span class="ic">▤</span>Accounts</a>
+      <a href="transfers.html"><span class="ic">⇄</span>Transfers</a>
+      <a href="billpayments.html"><span class="ic">▦</span>Bill Payments</a>
+      <a href="cards.html"><span class="ic">▭</span>Cards</a>
+      <a href="#"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="#"><span class="ic">%</span>Loans</a>
+      <a href="#"><span class="ic">⚑</span>Notifications</a>
+      <a href="#"><span class="ic">◎</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" id="logout-link">Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open menu">☰</button>
+      <div class="topbar-search">
+        <input type="text" placeholder="Search transactions, accounts...">
+      </div>
+      <div class="topbar-right">
+        <span class="bell">⚑<span class="dotbadge"></span></span>
+        <div class="avatar-btn" id="topbar-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content-pad">
+
+      <div class="welcome-row">
+        <div>
+          <h1>Accounts</h1>
+          <div class="lastlogin">Your checking and savings balances, and full transaction history.</div>
+        </div>
+      </div>
+
+      <div class="acct-summary-grid">
+        <div class="acct-summary-card reveal">
+          <div class="lbl">Checking</div>
+          <div class="num" id="checking-number">•••• ••••</div>
+          <div class="bal" id="checking-balance-full">$0<span class="cents">.00</span></div>
+        </div>
+        <div class="acct-summary-card reveal">
+          <div class="lbl">Savings</div>
+          <div class="num" id="savings-number">•••• ••••</div>
+          <div class="bal" id="savings-balance-full">$0<span class="cents">.00</span></div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-head">
+          <h3>Transaction history</h3>
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" id="search-input" placeholder="Search by description...">
+          <select id="category-filter">
+            <option value="all">All categories</option>
+          </select>
+          <select id="range-filter">
+            <option value="all">All time</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 3 months</option>
+            <option value="180">Last 6 months</option>
+            <option value="365">Last 12 months</option>
+          </select>
+          <button class="btn btn-ghost" id="download-btn">Download statement (CSV)</button>
+        </div>
+
+        <div class="txn-count" id="txn-count"></div>
+        <div id="full-txn-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  function money(n) {
+    const parts = Math.abs(n).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return { whole: parts[0], cents: parts[1] };
+  }
+  function initials(first, last) {
+    return `${(first || 'A')[0]}${(last || '')[0] || ''}`.toUpperCase();
+  }
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days < 1) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days} days ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} mo ago`;
+    return `${Math.floor(months / 12)} yr ago`;
+  }
+  // Deterministic fake account number from the user's uid, purely for display
+  function acctNumberFrom(uid, salt) {
+    let hash = 0;
+    const s = uid + salt;
+    for (let i = 0; i < s.length; i++) {
+      hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    }
+    const digits = (hash % 10000).toString().padStart(4, '0');
+    return `•••• ${digits}`;
+  }
+
+  // Scroll reveal — independent of data loading
+  document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 70}ms`; });
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  setTimeout(() => {
+    document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible'));
+  }, 2000);
+
+  let allTxns = [];
+
+  function renderTxns() {
+    const search = document.getElementById('search-input').value.trim().toLowerCase();
+    const category = document.getElementById('category-filter').value;
+    const range = document.getElementById('range-filter').value;
+    const cutoff = range === 'all' ? null : Date.now() - Number(range) * 86400000;
+
+    const filtered = allTxns.filter(t => {
+      if (search && !t.description.toLowerCase().includes(search)) return false;
+      if (category !== 'all' && t.category !== category) return false;
+      if (cutoff && new Date(t.date).getTime() < cutoff) return false;
+      return true;
+    });
+
+    document.getElementById('txn-count').textContent =
+      `${filtered.length} transaction${filtered.length === 1 ? '' : 's'}`;
+
+    const list = document.getElementById('full-txn-list');
+    if (filtered.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="ic">◈</div><p>No transactions match your filters.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(t => {
+      const isPos = t.amount >= 0;
+      const m = money(t.amount);
+      return `
+        <div class="txn-row">
+          <div class="who">
+            <span class="desc">${t.description}</span>
+            <span class="meta">${timeAgo(t.date)} · ${t.category}</span>
+          </div>
+          <div class="txn-amt ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : '−'} $${m.whole}.${m.cents}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function downloadCsv() {
+    const search = document.getElementById('search-input').value.trim().toLowerCase();
+    const category = document.getElementById('category-filter').value;
+    const range = document.getElementById('range-filter').value;
+    const cutoff = range === 'all' ? null : Date.now() - Number(range) * 86400000;
+
+    const filtered = allTxns.filter(t => {
+      if (search && !t.description.toLowerCase().includes(search)) return false;
+      if (category !== 'all' && t.category !== category) return false;
+      if (cutoff && new Date(t.date).getTime() < cutoff) return false;
+      return true;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const rows = [['Date', 'Description', 'Category', 'Amount (USD)']];
+    filtered.forEach(t => {
+      rows.push([
+        new Date(t.date).toISOString().slice(0, 10),
+        t.description.replace(/,/g, ' '),
+        t.category,
+        t.amount.toFixed(2)
+      ]);
+    });
+
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `aurix-bank-statement-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    document.getElementById('checking-number').textContent = acctNumberFrom(user.uid, 'checking');
+    document.getElementById('savings-number').textContent = acctNumberFrom(user.uid, 'savings');
+
+    try {
+      const [userSnap, acctSnap, txnSnap] = await Promise.all([
+        getDoc(doc(db, 'users', user.uid)),
+        getDoc(doc(db, 'accounts', user.uid)),
+        getDoc(doc(db, 'transactions', user.uid))
+      ]);
+
+      const profile = userSnap.exists() ? userSnap.data() : {};
+      const accounts = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
+      allTxns = txnSnap.exists() ? (txnSnap.data().items || []) : [];
+
+      const topbarAvatar = document.getElementById('topbar-avatar');
+      if (profile.profilePictureURL) {
+        topbarAvatar.innerHTML = `<img src="${profile.profilePictureURL}" alt="">`;
+      } else {
+        topbarAvatar.textContent = initials(profile.firstName, profile.lastName);
+      }
+
+      const cM = money(accounts.checkingBalance || 0);
+      const sM = money(accounts.savingsBalance || 0);
+      document.getElementById('checking-balance-full').innerHTML = `$${cM.whole}<span class="cents">.${cM.cents}</span>`;
+      document.getElementById('savings-balance-full').innerHTML = `$${sM.whole}<span class="cents">.${sM.cents}</span>`;
+
+      // Populate category filter dynamically from actual transaction data
+      const categories = [...new Set(allTxns.map(t => t.category))].sort();
+      const categorySelect = document.getElementById('category-filter');
+      categories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        categorySelect.appendChild(opt);
+      });
+
+      renderTxns();
+    } catch (e) {
+      console.error('Could not load account data:', e);
+      document.getElementById('full-txn-list').innerHTML =
+        `<div class="empty-state"><div class="ic">!</div><p>Could not load your data. Check the browser console (F12) for details.</p></div>`;
+    }
+  });
+
+  document.getElementById('search-input').addEventListener('input', renderTxns);
+  document.getElementById('category-filter').addEventListener('change', renderTxns);
+  document.getElementById('range-filter').addEventListener('change', renderTxns);
+  document.getElementById('download-btn').addEventListener('click', downloadCsv);
+
+  document.getElementById('logout-link').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = 'login.html';
+  });
+</script>
+
+
+<script>
+  (function() {
+    var menuToggle = document.getElementById('menu-toggle');
+    var appshell = document.querySelector('.appshell');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (menuToggle && appshell) {
+      menuToggle.addEventListener('click', function() {
+        appshell.classList.toggle('sidebar-open');
+      });
+    }
+    if (backdrop && appshell) {
+      backdrop.addEventListener('click', function() {
+        appshell.classList.remove('sidebar-open');
+      });
+    }
+  })();
+</script>
+</body>
+</html>

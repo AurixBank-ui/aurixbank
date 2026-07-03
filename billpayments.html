@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bill Payments — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .biller-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:26px; }
+  @media (max-width:760px){ .biller-grid{ grid-template-columns:repeat(3,1fr); } }
+  .biller-tile{
+    background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:16px 8px;
+    text-align:center; cursor:pointer; transition:border-color .15s ease;
+  }
+  .biller-tile:hover{ border-color:var(--brass); }
+  .biller-tile.active{ border-color:var(--brass); background:var(--panel-2); }
+  .biller-tile .ic{ font-size:20px; color:var(--brass); margin-bottom:8px; }
+  .biller-tile .lbl{ font-size:12px; color:var(--paper); font-weight:500; }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="appshell">
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <nav>
+      <a href="dashboard.html"><span class="ic">◆</span>Dashboard</a>
+      <a href="accounts.html"><span class="ic">▤</span>Accounts</a>
+      <a href="transfers.html"><span class="ic">⇄</span>Transfers</a>
+      <a href="billpayments.html" class="active"><span class="ic">▦</span>Bill Payments</a>
+      <a href="cards.html"><span class="ic">▭</span>Cards</a>
+      <a href="#"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="#"><span class="ic">%</span>Loans</a>
+      <a href="#"><span class="ic">⚑</span>Notifications</a>
+      <a href="#"><span class="ic">◎</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" id="logout-link">Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open menu">☰</button>
+      <div class="topbar-search">
+        <input type="text" placeholder="Search transactions, accounts...">
+      </div>
+      <div class="topbar-right">
+        <span class="bell">⚑<span class="dotbadge"></span></span>
+        <div class="avatar-btn" id="topbar-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content-pad">
+
+      <div class="welcome-row">
+        <div>
+          <h1>Bill Payments</h1>
+          <div class="lastlogin">Pay your regular bills straight from your Aurix account.</div>
+        </div>
+      </div>
+
+      <div class="acct-summary-grid">
+        <div class="acct-summary-card reveal">
+          <div class="lbl">Checking</div>
+          <div class="num" id="checking-number">•••• ••••</div>
+          <div class="bal" id="checking-balance">$0<span class="cents">.00</span></div>
+        </div>
+        <div class="acct-summary-card reveal">
+          <div class="lbl">Savings</div>
+          <div class="num" id="savings-number">•••• ••••</div>
+          <div class="bal" id="savings-balance">$0<span class="cents">.00</span></div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-head"><h3>Pay a bill</h3></div>
+
+        <div class="biller-grid" id="biller-grid">
+          <div class="biller-tile active" data-cat="Electricity"><div class="ic">⚡</div><div class="lbl">Electricity</div></div>
+          <div class="biller-tile" data-cat="Water"><div class="ic">◍</div><div class="lbl">Water</div></div>
+          <div class="biller-tile" data-cat="Internet"><div class="ic">◎</div><div class="lbl">Internet</div></div>
+          <div class="biller-tile" data-cat="TV"><div class="ic">▭</div><div class="lbl">TV</div></div>
+          <div class="biller-tile" data-cat="Airtime"><div class="ic">☎</div><div class="lbl">Airtime</div></div>
+          <div class="biller-tile" data-cat="Taxes"><div class="ic">▤</div><div class="lbl">Taxes</div></div>
+        </div>
+
+        <div class="form-error" id="pay-err"></div>
+        <div class="form-success" id="pay-ok"></div>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="provider-select">Provider</label>
+            <select id="provider-select"></select>
+          </div>
+          <div class="form-field">
+            <label for="pay-from">Pay from</label>
+            <select id="pay-from">
+              <option value="checking">Checking</option>
+              <option value="savings">Savings</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="account-number">Account / meter number</label>
+          <input type="text" id="account-number" placeholder="e.g. 00234871">
+        </div>
+        <div class="form-field">
+          <label for="pay-amount">Amount (USD)</label>
+          <input type="number" id="pay-amount" placeholder="0.00" min="0.01" step="0.01">
+        </div>
+        <button class="btn btn-brass" id="pay-submit">Pay bill</button>
+      </div>
+
+      <div class="card reveal receipt-card" id="receipt-wrap" style="display:none;">
+        <div class="card-head"><h3>Receipt</h3></div>
+        <div class="receipt" id="receipt-body"></div>
+        <div class="receipt-actions">
+          <button class="btn btn-ghost" id="print-receipt">Print</button>
+          <button class="btn btn-ghost" id="close-receipt">Close</button>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-head"><h3>Recent bill payments</h3></div>
+        <div id="bills-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const PROVIDERS = {
+    Electricity: ['City Power & Light', 'Metro Electric Co-op'],
+    Water: ['Municipal Water Authority', 'Clearstream Water'],
+    Internet: ['Fiberline Networks', 'NorthWave Internet'],
+    TV: ['StreamVision Cable', 'DirectSat TV'],
+    Airtime: ['Verizon', 'AT&T', 'T-Mobile'],
+    Taxes: ['State Department of Revenue', 'County Tax Office']
+  };
+
+  function money(n) {
+    const parts = Math.abs(n).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return { whole: parts[0], cents: parts[1] };
+  }
+  function initials(first, last) {
+    return `${(first || 'A')[0]}${(last || '')[0] || ''}`.toUpperCase();
+  }
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days < 1) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days} days ago`;
+    return `${Math.floor(days / 30)} mo ago`;
+  }
+  function acctNumberFrom(uid, salt) {
+    let hash = 0;
+    const s = uid + salt;
+    for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    return `•••• ${(hash % 10000).toString().padStart(4, '0')}`;
+  }
+  function refNumber() {
+    return 'AXB-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+  }
+
+  // Scroll reveal
+  document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 70}ms`; });
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); revealObserver.unobserve(entry.target); }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  setTimeout(() => {
+    document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible'));
+  }, 2000);
+
+  let currentCategory = 'Electricity';
+  function populateProviders() {
+    const select = document.getElementById('provider-select');
+    select.innerHTML = PROVIDERS[currentCategory].map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+  populateProviders();
+
+  document.querySelectorAll('.biller-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      document.querySelectorAll('.biller-tile').forEach(t => t.classList.remove('active'));
+      tile.classList.add('active');
+      currentCategory = tile.dataset.cat;
+      populateProviders();
+    });
+  });
+
+  let currentUser = null;
+  let accountsCache = { checkingBalance: 0, savingsBalance: 0 };
+  let allTxns = [];
+
+  function refreshBalanceDisplay() {
+    const cM = money(accountsCache.checkingBalance || 0);
+    const sM = money(accountsCache.savingsBalance || 0);
+    document.getElementById('checking-balance').innerHTML = `$${cM.whole}<span class="cents">.${cM.cents}</span>`;
+    document.getElementById('savings-balance').innerHTML = `$${sM.whole}<span class="cents">.${sM.cents}</span>`;
+  }
+
+  function renderBillsList() {
+    const bills = allTxns.filter(t => t.category === 'Bill Payment').sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+    const list = document.getElementById('bills-list');
+    if (bills.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="ic">▦</div><p>No bill payments yet.</p></div>`;
+      return;
+    }
+    list.innerHTML = bills.map(t => {
+      const m = money(t.amount);
+      return `
+        <div class="txn-row">
+          <div class="who">
+            <span class="desc">${t.description}</span>
+            <span class="meta">${timeAgo(t.date)}</span>
+          </div>
+          <div class="txn-amt neg">− $${m.whole}.${m.cents}</div>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('pay-submit').addEventListener('click', async () => {
+    const provider = document.getElementById('provider-select').value;
+    const from = document.getElementById('pay-from').value;
+    const acctNum = document.getElementById('account-number').value.trim();
+    const amount = parseFloat(document.getElementById('pay-amount').value);
+    const err = document.getElementById('pay-err');
+    const ok = document.getElementById('pay-ok');
+    err.classList.remove('show'); ok.classList.remove('show');
+
+    if (!acctNum) { err.textContent = 'Enter your account or meter number.'; err.classList.add('show'); return; }
+    if (!amount || amount <= 0) { err.textContent = 'Enter a valid amount.'; err.classList.add('show'); return; }
+    const fromField = from === 'checking' ? 'checkingBalance' : 'savingsBalance';
+    if ((accountsCache[fromField] || 0) < amount) { err.textContent = 'Insufficient funds in the selected account.'; err.classList.add('show'); return; }
+
+    try {
+      await updateDoc(doc(db, 'accounts', currentUser.uid), { [fromField]: increment(-amount) });
+
+      const now = new Date().toISOString();
+      const ref = refNumber();
+      const desc = `${currentCategory} — ${provider}`;
+      const newTxn = { date: now, description: desc, amount: -amount, category: 'Bill Payment' };
+      await updateDoc(doc(db, 'transactions', currentUser.uid), { items: arrayUnion(newTxn) });
+
+      accountsCache[fromField] = (accountsCache[fromField] || 0) - amount;
+      allTxns.push(newTxn);
+      refreshBalanceDisplay();
+      renderBillsList();
+
+      ok.textContent = 'Payment sent.'; ok.classList.add('show');
+      document.getElementById('receipt-body').innerHTML = `
+        <div class="receipt-head">
+          <div class="status">Completed</div>
+          <div class="amt">$${money(amount).whole}.${money(amount).cents}</div>
+        </div>
+        <div class="receipt-row"><span>Bill</span><span>${desc}</span></div>
+        <div class="receipt-row"><span>Account / meter</span><span>${acctNum}</span></div>
+        <div class="receipt-row"><span>Paid from</span><span>${from === 'checking' ? 'Checking' : 'Savings'}</span></div>
+        <div class="receipt-row"><span>Reference</span><span>${ref}</span></div>
+        <div class="receipt-row"><span>Date</span><span>${new Date().toLocaleString('en-US')}</span></div>
+      `;
+      document.getElementById('receipt-wrap').style.display = 'block';
+      document.getElementById('receipt-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      document.getElementById('account-number').value = '';
+      document.getElementById('pay-amount').value = '';
+    } catch (e) {
+      console.error(e);
+      err.textContent = 'Something went wrong. Please try again.'; err.classList.add('show');
+    }
+  });
+
+  document.getElementById('close-receipt').addEventListener('click', () => {
+    document.getElementById('receipt-wrap').style.display = 'none';
+  });
+  document.getElementById('print-receipt').addEventListener('click', () => window.print());
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+
+    document.getElementById('checking-number').textContent = acctNumberFrom(user.uid, 'checking');
+    document.getElementById('savings-number').textContent = acctNumberFrom(user.uid, 'savings');
+
+    try {
+      const [userSnap, acctSnap, txnSnap] = await Promise.all([
+        getDoc(doc(db, 'users', user.uid)),
+        getDoc(doc(db, 'accounts', user.uid)),
+        getDoc(doc(db, 'transactions', user.uid))
+      ]);
+      const profile = userSnap.exists() ? userSnap.data() : {};
+      accountsCache = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
+      allTxns = txnSnap.exists() ? (txnSnap.data().items || []) : [];
+
+      const topbarAvatar = document.getElementById('topbar-avatar');
+      if (profile.profilePictureURL) {
+        topbarAvatar.innerHTML = `<img src="${profile.profilePictureURL}" alt="">`;
+      } else {
+        topbarAvatar.textContent = initials(profile.firstName, profile.lastName);
+      }
+
+      refreshBalanceDisplay();
+      renderBillsList();
+    } catch (e) {
+      console.error('Could not load account data:', e);
+    }
+  });
+
+  document.getElementById('logout-link').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = 'login.html';
+  });
+</script>
+
+
+<script>
+  (function() {
+    var menuToggle = document.getElementById('menu-toggle');
+    var appshell = document.querySelector('.appshell');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (menuToggle && appshell) {
+      menuToggle.addEventListener('click', function() {
+        appshell.classList.toggle('sidebar-open');
+      });
+    }
+    if (backdrop && appshell) {
+      backdrop.addEventListener('click', function() {
+        appshell.classList.remove('sidebar-open');
+      });
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Transfers — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="appshell">
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <nav>
+      <a href="dashboard.html"><span class="ic">◆</span>Dashboard</a>
+      <a href="accounts.html"><span class="ic">▤</span>Accounts</a>
+      <a href="transfers.html" class="active"><span class="ic">⇄</span>Transfers</a>
+      <a href="billpayments.html"><span class="ic">▦</span>Bill Payments</a>
+      <a href="cards.html"><span class="ic">▭</span>Cards</a>
+      <a href="#"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="#"><span class="ic">%</span>Loans</a>
+      <a href="#"><span class="ic">⚑</span>Notifications</a>
+      <a href="#"><span class="ic">◎</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" id="logout-link">Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open menu">☰</button>
+      <div class="topbar-search">
+        <input type="text" placeholder="Search transactions, accounts...">
+      </div>
+      <div class="topbar-right">
+        <span class="bell">⚑<span class="dotbadge"></span></span>
+        <div class="avatar-btn" id="topbar-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content-pad">
+
+      <div class="welcome-row">
+        <div>
+          <h1>Transfers</h1>
+          <div class="lastlogin">Move money between your accounts or send it elsewhere.</div>
+        </div>
+      </div>
+
+      <div class="acct-summary-grid">
+        <div class="acct-summary-card reveal">
+          <div class="lbl">Checking</div>
+          <div class="num" id="checking-number">•••• ••••</div>
+          <div class="bal" id="checking-balance">$0<span class="cents">.00</span></div>
+        </div>
+        <div class="acct-summary-card reveal">
+          <div class="lbl">Savings</div>
+          <div class="num" id="savings-number">•••• ••••</div>
+          <div class="bal" id="savings-balance">$0<span class="cents">.00</span></div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="tab-row">
+          <div class="tab-btn active" data-tab="between">Between my accounts</div>
+          <div class="tab-btn" data-tab="send">Send money</div>
+          <div class="tab-btn" data-tab="scheduled">Scheduled transfers</div>
+        </div>
+
+        <!-- Between my accounts -->
+        <div class="tab-panel active" id="tab-between">
+          <div class="form-error" id="between-err"></div>
+          <div class="form-success" id="between-ok"></div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="between-from">From</label>
+              <select id="between-from">
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="between-to">To</label>
+              <select id="between-to">
+                <option value="savings">Savings</option>
+                <option value="checking">Checking</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="between-amount">Amount (USD)</label>
+            <input type="number" id="between-amount" placeholder="0.00" min="0.01" step="0.01">
+          </div>
+          <button class="btn btn-brass" id="between-submit">Transfer</button>
+        </div>
+
+        <!-- Send money -->
+        <div class="tab-panel" id="tab-send">
+          <div class="form-error" id="send-err"></div>
+          <div class="form-success" id="send-ok"></div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="send-type">Transfer type</label>
+              <select id="send-type">
+                <option value="Aurix customer">Aurix Bank customer</option>
+                <option value="Other bank">Other bank</option>
+                <option value="International">International</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="send-from">From account</label>
+              <select id="send-from">
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="send-recipient">Recipient name</label>
+            <input type="text" id="send-recipient" placeholder="e.g. James Carter">
+          </div>
+          <div class="form-field" id="send-bank-field" style="display:none;">
+            <label for="send-bank">Recipient's bank</label>
+            <input type="text" id="send-bank" list="us-banks-list" placeholder="Start typing a bank name...">
+            <datalist id="us-banks-list">
+              <option value="JPMorgan Chase Bank">
+              <option value="Bank of America">
+              <option value="Wells Fargo Bank">
+              <option value="Citibank">
+              <option value="U.S. Bank">
+              <option value="PNC Bank">
+              <option value="Truist Bank">
+              <option value="Goldman Sachs Bank USA">
+              <option value="Capital One">
+              <option value="TD Bank">
+              <option value="Bank of New York Mellon">
+              <option value="State Street Bank and Trust">
+              <option value="American Express National Bank">
+              <option value="Charles Schwab Bank">
+              <option value="HSBC Bank USA">
+              <option value="Citizens Bank">
+              <option value="Fifth Third Bank">
+              <option value="Ally Bank">
+              <option value="KeyBank">
+              <option value="Regions Bank">
+              <option value="M&T Bank">
+              <option value="Huntington National Bank">
+              <option value="Discover Bank">
+              <option value="Santander Bank">
+              <option value="BMO Harris Bank">
+              <option value="First National Bank">
+              <option value="Comerica Bank">
+              <option value="Zions Bancorporation">
+              <option value="Synchrony Bank">
+              <option value="Navy Federal Credit Union">
+              <option value="USAA Bank">
+            </datalist>
+          </div>
+          <div class="form-field" id="send-country-field" style="display:none;">
+            <label for="send-country">Destination country</label>
+            <input type="text" id="send-country" placeholder="e.g. United Kingdom">
+          </div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="send-account-number">Account number</label>
+              <input type="text" id="send-account-number" inputmode="numeric" placeholder="e.g. 4001238765">
+            </div>
+            <div class="form-field">
+              <label for="send-routing-number">Routing number</label>
+              <input type="text" id="send-routing-number" inputmode="numeric" maxlength="9" placeholder="9 digits">
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="send-amount">Amount (USD)</label>
+            <input type="number" id="send-amount" placeholder="0.00" min="0.01" step="0.01">
+          </div>
+          <button class="btn btn-brass" id="send-submit">Send</button>
+        </div>
+
+        <!-- Scheduled transfers -->
+        <div class="tab-panel" id="tab-scheduled">
+          <div class="form-error" id="sched-err"></div>
+          <div class="form-success" id="sched-ok"></div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="sched-recipient">Recipient name</label>
+              <input type="text" id="sched-recipient" placeholder="e.g. James Carter">
+            </div>
+            <div class="form-field">
+              <label for="sched-from">From account</label>
+              <select id="sched-from">
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="sched-amount">Amount (USD)</label>
+              <input type="number" id="sched-amount" placeholder="0.00" min="0.01" step="0.01">
+            </div>
+            <div class="form-field">
+              <label for="sched-date">Send on</label>
+              <input type="date" id="sched-date">
+            </div>
+          </div>
+          <div class="form-note">This will process automatically the next time you open Aurix Bank on or after the date you choose.</div>
+          <button class="btn btn-brass" id="sched-submit">Schedule transfer</button>
+
+          <div style="margin-top:28px;">
+            <div class="card-head"><h3 style="font-size:15px;">Your scheduled transfers</h3></div>
+            <div id="scheduled-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Receipt (hidden until a transfer completes) -->
+      <div class="card reveal receipt-card" id="receipt-wrap" style="display:none;">
+        <div class="card-head"><h3>Receipt</h3></div>
+        <div class="receipt" id="receipt-body"></div>
+        <div class="receipt-actions">
+          <button class="btn btn-ghost" id="print-receipt">Print</button>
+          <button class="btn btn-ghost" id="close-receipt">Close</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  function money(n) {
+    const parts = Math.abs(n).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return { whole: parts[0], cents: parts[1] };
+  }
+  function initials(first, last) {
+    return `${(first || 'A')[0]}${(last || '')[0] || ''}`.toUpperCase();
+  }
+  function acctNumberFrom(uid, salt) {
+    let hash = 0;
+    const s = uid + salt;
+    for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    return `•••• ${(hash % 10000).toString().padStart(4, '0')}`;
+  }
+  function refNumber() {
+    return 'AXB-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+  }
+
+  // Scroll reveal
+  document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 70}ms`; });
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); revealObserver.unobserve(entry.target); }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  setTimeout(() => {
+    document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible'));
+  }, 2000);
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    });
+  });
+
+  document.getElementById('send-type').addEventListener('change', (e) => {
+    document.getElementById('send-country-field').style.display = e.target.value === 'International' ? 'block' : 'none';
+    document.getElementById('send-bank-field').style.display = e.target.value === 'Other bank' ? 'block' : 'none';
+  });
+
+  let currentUser = null;
+  let accountsCache = { checkingBalance: 0, savingsBalance: 0 };
+
+  function refreshBalanceDisplay() {
+    const cM = money(accountsCache.checkingBalance || 0);
+    const sM = money(accountsCache.savingsBalance || 0);
+    document.getElementById('checking-balance').innerHTML = `$${cM.whole}<span class="cents">.${cM.cents}</span>`;
+    document.getElementById('savings-balance').innerHTML = `$${sM.whole}<span class="cents">.${sM.cents}</span>`;
+  }
+
+  function showReceipt({ title, amount, from, to, ref, extra }) {
+    document.getElementById('receipt-body').innerHTML = `
+      <div class="receipt-head">
+        <div class="status">Completed</div>
+        <div class="amt">$${money(amount).whole}.${money(amount).cents}</div>
+      </div>
+      <div class="receipt-row"><span>Description</span><span>${title}</span></div>
+      <div class="receipt-row"><span>From</span><span>${from}</span></div>
+      <div class="receipt-row"><span>To</span><span>${to}</span></div>
+      ${extra || ''}
+      <div class="receipt-row"><span>Reference</span><span>${ref}</span></div>
+      <div class="receipt-row"><span>Date</span><span>${new Date().toLocaleString('en-US')}</span></div>
+    `;
+    document.getElementById('receipt-wrap').style.display = 'block';
+    document.getElementById('receipt-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  document.getElementById('close-receipt').addEventListener('click', () => {
+    document.getElementById('receipt-wrap').style.display = 'none';
+  });
+  document.getElementById('print-receipt').addEventListener('click', () => window.print());
+
+  // ---- Between my accounts ----
+  document.getElementById('between-submit').addEventListener('click', async () => {
+    const from = document.getElementById('between-from').value;
+    const to = document.getElementById('between-to').value;
+    const amount = parseFloat(document.getElementById('between-amount').value);
+    const err = document.getElementById('between-err');
+    const ok = document.getElementById('between-ok');
+    err.classList.remove('show'); ok.classList.remove('show');
+
+    if (from === to) { err.textContent = 'Choose two different accounts.'; err.classList.add('show'); return; }
+    if (!amount || amount <= 0) { err.textContent = 'Enter a valid amount.'; err.classList.add('show'); return; }
+    const fromField = from === 'checking' ? 'checkingBalance' : 'savingsBalance';
+    const toField = to === 'checking' ? 'checkingBalance' : 'savingsBalance';
+    if ((accountsCache[fromField] || 0) < amount) { err.textContent = 'Insufficient funds in the source account.'; err.classList.add('show'); return; }
+
+    try {
+      const acctRef = doc(db, 'accounts', currentUser.uid);
+      await updateDoc(acctRef, { [fromField]: increment(-amount), [toField]: increment(amount) });
+
+      const now = new Date().toISOString();
+      const ref = refNumber();
+      await updateDoc(doc(db, 'transactions', currentUser.uid), {
+        items: arrayUnion(
+          { date: now, description: `Transfer to ${to === 'checking' ? 'Checking' : 'Savings'}`, amount: -amount, category: 'Internal Transfer' },
+          { date: now, description: `Transfer from ${from === 'checking' ? 'Checking' : 'Savings'}`, amount: amount, category: 'Internal Transfer' }
+        )
+      });
+
+      accountsCache[fromField] = (accountsCache[fromField] || 0) - amount;
+      accountsCache[toField] = (accountsCache[toField] || 0) + amount;
+      refreshBalanceDisplay();
+
+      ok.textContent = 'Transfer complete.'; ok.classList.add('show');
+      showReceipt({
+        title: 'Internal transfer',
+        amount, ref,
+        from: from === 'checking' ? 'Checking' : 'Savings',
+        to: to === 'checking' ? 'Checking' : 'Savings'
+      });
+      document.getElementById('between-amount').value = '';
+    } catch (e) {
+      console.error(e);
+      err.textContent = 'Something went wrong. Please try again.'; err.classList.add('show');
+    }
+  });
+
+  // ---- Send money ----
+  document.getElementById('send-submit').addEventListener('click', async () => {
+    const type = document.getElementById('send-type').value;
+    const from = document.getElementById('send-from').value;
+    const recipient = document.getElementById('send-recipient').value.trim();
+    const bankName = document.getElementById('send-bank').value.trim();
+    const country = document.getElementById('send-country').value.trim();
+    const acctNum = document.getElementById('send-account-number').value.trim();
+    const routingNum = document.getElementById('send-routing-number').value.trim();
+    const amount = parseFloat(document.getElementById('send-amount').value);
+    const err = document.getElementById('send-err');
+    const ok = document.getElementById('send-ok');
+    err.classList.remove('show'); ok.classList.remove('show');
+
+    if (!recipient) { err.textContent = 'Enter a recipient name.'; err.classList.add('show'); return; }
+    if (type === 'Other bank' && !bankName) { err.textContent = "Enter the recipient's bank." ; err.classList.add('show'); return; }
+    if (type === 'International' && !country) { err.textContent = 'Enter a destination country.'; err.classList.add('show'); return; }
+    if (!acctNum) { err.textContent = 'Enter the recipient account number.'; err.classList.add('show'); return; }
+    if (!/^\d{9}$/.test(routingNum)) { err.textContent = 'Routing number must be exactly 9 digits.'; err.classList.add('show'); return; }
+    if (!amount || amount <= 0) { err.textContent = 'Enter a valid amount.'; err.classList.add('show'); return; }
+    const fromField = from === 'checking' ? 'checkingBalance' : 'savingsBalance';
+    if ((accountsCache[fromField] || 0) < amount) { err.textContent = 'Insufficient funds in the source account.'; err.classList.add('show'); return; }
+
+    try {
+      const acctRef = doc(db, 'accounts', currentUser.uid);
+      await updateDoc(acctRef, { [fromField]: increment(-amount) });
+
+      const now = new Date().toISOString();
+      const ref = refNumber();
+      const desc = type === 'International' ? `International transfer to ${recipient}` :
+                   type === 'Other bank' ? `Transfer to ${recipient} (${bankName})` :
+                   `Transfer to ${recipient}`;
+      await updateDoc(doc(db, 'transactions', currentUser.uid), {
+        items: arrayUnion({ date: now, description: desc, amount: -amount, category: 'Transfer' })
+      });
+
+      accountsCache[fromField] = (accountsCache[fromField] || 0) - amount;
+      refreshBalanceDisplay();
+
+      ok.textContent = 'Transfer sent.'; ok.classList.add('show');
+      let extraRows = `<div class="receipt-row"><span>Account number</span><span>••••${acctNum.slice(-4)}</span></div>
+                        <div class="receipt-row"><span>Routing number</span><span>${routingNum}</span></div>`;
+      if (type === 'Other bank') extraRows += `<div class="receipt-row"><span>Bank</span><span>${bankName}</span></div>`;
+      if (type === 'International') extraRows += `<div class="receipt-row"><span>Country</span><span>${country}</span></div>`;
+
+      showReceipt({
+        title: desc, amount, ref,
+        from: from === 'checking' ? 'Checking' : 'Savings',
+        to: recipient,
+        extra: extraRows
+      });
+      document.getElementById('send-recipient').value = '';
+      document.getElementById('send-bank').value = '';
+      document.getElementById('send-amount').value = '';
+      document.getElementById('send-country').value = '';
+      document.getElementById('send-account-number').value = '';
+      document.getElementById('send-routing-number').value = '';
+    } catch (e) {
+      console.error(e);
+      err.textContent = 'Something went wrong. Please try again.'; err.classList.add('show');
+    }
+  });
+
+  // ---- Scheduled transfers ----
+  async function loadScheduled() {
+    const snap = await getDoc(doc(db, 'scheduledTransfers', currentUser.uid));
+    let items = snap.exists() ? (snap.data().items || []) : [];
+
+    // Auto-execute any pending items whose date has arrived
+    const today = new Date().toISOString().slice(0, 10);
+    let changed = false;
+    for (const item of items) {
+      if (item.status === 'pending' && item.date <= today) {
+        const fromField = item.sourceAccount === 'checking' ? 'checkingBalance' : 'savingsBalance';
+        if ((accountsCache[fromField] || 0) >= item.amount) {
+          await updateDoc(doc(db, 'accounts', currentUser.uid), { [fromField]: increment(-item.amount) });
+          accountsCache[fromField] = (accountsCache[fromField] || 0) - item.amount;
+          await updateDoc(doc(db, 'transactions', currentUser.uid), {
+            items: arrayUnion({
+              date: new Date().toISOString(),
+              description: `Scheduled transfer to ${item.recipientName}`,
+              amount: -item.amount,
+              category: 'Transfer'
+            })
+          });
+          item.status = 'completed';
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      await setDoc(doc(db, 'scheduledTransfers', currentUser.uid), { items });
+      refreshBalanceDisplay();
+    }
+
+    const list = document.getElementById('scheduled-list');
+    if (items.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="ic">◷</div><p>No scheduled transfers yet.</p></div>`;
+      return;
+    }
+    list.innerHTML = [...items].sort((a, b) => new Date(a.date) - new Date(b.date)).map(item => `
+      <div class="txn-row">
+        <div class="who">
+          <span class="desc">To ${item.recipientName}</span>
+          <span class="meta">${item.date} · from ${item.sourceAccount === 'checking' ? 'Checking' : 'Savings'} · ${item.status}</span>
+        </div>
+        <div class="txn-amt neg">− $${money(item.amount).whole}.${money(item.amount).cents}</div>
+      </div>`).join('');
+  }
+
+  document.getElementById('sched-submit').addEventListener('click', async () => {
+    const recipient = document.getElementById('sched-recipient').value.trim();
+    const from = document.getElementById('sched-from').value;
+    const amount = parseFloat(document.getElementById('sched-amount').value);
+    const date = document.getElementById('sched-date').value;
+    const err = document.getElementById('sched-err');
+    const ok = document.getElementById('sched-ok');
+    err.classList.remove('show'); ok.classList.remove('show');
+
+    if (!recipient) { err.textContent = 'Enter a recipient name.'; err.classList.add('show'); return; }
+    if (!amount || amount <= 0) { err.textContent = 'Enter a valid amount.'; err.classList.add('show'); return; }
+    if (!date) { err.textContent = 'Choose a date.'; err.classList.add('show'); return; }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (date < todayStr) { err.textContent = 'Choose a date today or in the future.'; err.classList.add('show'); return; }
+
+    try {
+      const newItem = { id: refNumber(), recipientName: recipient, amount, date, sourceAccount: from, status: 'pending' };
+      await updateDoc(doc(db, 'scheduledTransfers', currentUser.uid), { items: arrayUnion(newItem) }).catch(async () => {
+        // Document may not exist yet on first schedule
+        await setDoc(doc(db, 'scheduledTransfers', currentUser.uid), { items: [newItem] });
+      });
+
+      ok.textContent = 'Transfer scheduled.'; ok.classList.add('show');
+      document.getElementById('sched-recipient').value = '';
+      document.getElementById('sched-amount').value = '';
+      document.getElementById('sched-date').value = '';
+      loadScheduled();
+    } catch (e) {
+      console.error(e);
+      err.textContent = 'Something went wrong. Please try again.'; err.classList.add('show');
+    }
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+
+    document.getElementById('checking-number').textContent = acctNumberFrom(user.uid, 'checking');
+    document.getElementById('savings-number').textContent = acctNumberFrom(user.uid, 'savings');
+
+    try {
+      const [userSnap, acctSnap] = await Promise.all([
+        getDoc(doc(db, 'users', user.uid)),
+        getDoc(doc(db, 'accounts', user.uid))
+      ]);
+      const profile = userSnap.exists() ? userSnap.data() : {};
+      accountsCache = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
+
+      const topbarAvatar = document.getElementById('topbar-avatar');
+      if (profile.profilePictureURL) {
+        topbarAvatar.innerHTML = `<img src="${profile.profilePictureURL}" alt="">`;
+      } else {
+        topbarAvatar.textContent = initials(profile.firstName, profile.lastName);
+      }
+
+      refreshBalanceDisplay();
+      await loadScheduled();
+    } catch (e) {
+      console.error('Could not load account data:', e);
+    }
+  });
+
+  document.getElementById('logout-link').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = 'login.html';
+  });
+</script>
+
+
+<script>
+  (function() {
+    var menuToggle = document.getElementById('menu-toggle');
+    var appshell = document.querySelector('.appshell');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (menuToggle && appshell) {
+      menuToggle.addEventListener('click', function() {
+        appshell.classList.toggle('sidebar-open');
+      });
+    }
+    if (backdrop && appshell) {
+      backdrop.addEventListener('click', function() {
+        appshell.classList.remove('sidebar-open');
+      });
+    }
+  })();
+</script>
+</body>
+</html>

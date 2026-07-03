@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Open an account — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .authwrap{ min-height:calc(100vh - 76px); display:flex; align-items:center; justify-content:center; padding:60px 20px; }
+  .authcard{ width:100%; max-width:440px; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:40px 36px; position:relative; }
+  .authcard::before{
+    content:'AURIX'; position:absolute; top:20px; right:22px; font-family:'Fraunces', serif;
+    font-size:10px; letter-spacing:0.24em; color:var(--brass-dim); border:1px solid var(--brass-dim);
+    padding:4px 9px; border-radius:50%; transform:rotate(8deg); opacity:0.6;
+  }
+  .authcard h1{ font-family:'Fraunces', serif; font-size:28px; font-weight:600; color:var(--paper); margin-bottom:8px; }
+  .authcard p.sub{ color:var(--slate); font-size:14px; margin-bottom:30px; }
+  .field{ margin-bottom:18px; }
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .field label{ display:block; font-size:12.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--slate-dim); margin-bottom:8px; }
+  .field input{
+    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px;
+    padding:13px 14px; font-size:15px; color:var(--paper); font-family:'Inter', sans-serif;
+    outline:none; transition:border-color .15s ease;
+  }
+  .field input:focus{ border-color:var(--brass); }
+  .field input::placeholder{ color:var(--slate-dim); }
+  .hint{ font-size:12px; color:var(--slate-dim); margin-top:6px; }
+  .authcard .btn{ width:100%; padding:13px; font-size:15px; margin-top:6px; }
+  .err{
+    background:rgba(201,90,90,0.1); border:1px solid rgba(201,90,90,0.3); color:#E1948F;
+    font-size:13px; padding:11px 14px; border-radius:4px; margin-bottom:18px; display:none;
+  }
+  .err.show{ display:block; }
+  .switch{ text-align:center; margin-top:26px; font-size:13.5px; color:var(--slate); }
+  .switch a{ color:var(--brass); }
+  .switch a:hover{ text-decoration:underline; }
+  .terms{ font-size:12.5px; color:var(--slate-dim); margin-top:16px; text-align:center; }
+  .terms a{ color:var(--brass); }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header>
+  <div class="wrap nav">
+    <a href="index.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <div class="navcta">
+      <span style="color:var(--slate); font-size:13.5px;">Already have an account?</span>
+      <a href="login.html" class="btn btn-ghost">Log in</a>
+    </div>
+  </div>
+</header>
+
+<div class="authwrap">
+  <div class="authcard">
+    <h1>Open your account</h1>
+    <p class="sub">Takes about two minutes. No branch visit needed.</p>
+
+    <div class="err" id="signup-err">Please fill in all fields correctly before continuing.</div>
+
+    <div class="field field-row">
+      <div>
+        <label for="first-name">First name</label>
+        <input type="text" id="first-name" placeholder="James">
+      </div>
+      <div>
+        <label for="last-name">Last name</label>
+        <input type="text" id="last-name" placeholder="Carter">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="signup-email">Email address</label>
+      <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label for="signup-phone">Phone number</label>
+      <input type="tel" id="signup-phone" placeholder="(555) 000-0000">
+    </div>
+
+    <div class="field">
+      <label for="signup-password">Create password</label>
+      <input type="password" id="signup-password" placeholder="••••••••" autocomplete="new-password">
+      <div class="hint">At least 8 characters, one number, one symbol.</div>
+    </div>
+
+    <div class="field">
+      <label for="signup-confirm">Confirm password</label>
+      <input type="password" id="signup-confirm" placeholder="••••••••" autocomplete="new-password">
+    </div>
+
+    <button class="btn btn-brass" id="create-account-btn">Continue to verification</button>
+
+    <p class="terms">By continuing, you agree to Aurix Bank's <a href="terms.html">Terms</a> and <a href="#">Privacy Policy</a>.</p>
+
+    <p class="switch">Already banking with us? <a href="login.html">Log in</a></p>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const createBtn = document.getElementById('create-account-btn');
+  const err = document.getElementById('signup-err');
+
+  // ---------- Seed data generation ----------
+  // Realistic-looking US merchants and individuals for a demo transaction history.
+  const MERCHANTS = [
+    { name: 'Amazon', category: 'Shopping' },
+    { name: 'Walmart', category: 'Groceries' },
+    { name: 'Target', category: 'Shopping' },
+    { name: 'Costco Wholesale', category: 'Groceries' },
+    { name: 'Whole Foods Market', category: 'Groceries' },
+    { name: 'Starbucks', category: 'Dining' },
+    { name: 'Chipotle Mexican Grill', category: 'Dining' },
+    { name: 'Trader Joe\'s', category: 'Groceries' },
+    { name: 'Apple', category: 'Shopping' },
+    { name: 'Netflix', category: 'Subscription' },
+    { name: 'Spotify', category: 'Subscription' },
+    { name: 'Uber', category: 'Transport' },
+    { name: 'Delta Air Lines', category: 'Travel' },
+    { name: 'Marriott Hotels', category: 'Travel' },
+    { name: 'Shell', category: 'Transport' },
+    { name: 'Chevron', category: 'Transport' },
+    { name: 'The Home Depot', category: 'Shopping' },
+    { name: 'Best Buy', category: 'Shopping' },
+    { name: 'CVS Pharmacy', category: 'Healthcare' },
+    { name: 'AT&T', category: 'Utilities' },
+    { name: 'Con Edison', category: 'Utilities' },
+    { name: 'Macy\'s', category: 'Shopping' }
+  ];
+  const PEOPLE = [
+    'James Carter', 'Sarah Mitchell', 'David Reynolds', 'Laura Bennett',
+    'Michael Turner', 'Emily Clarke', 'Robert Hayes', 'Jessica Morgan',
+    'William Foster', 'Amanda Brooks'
+  ];
+  const EMPLOYERS = ['Meridian Group', 'Northgate Consulting', 'Vantage Partners', 'Crestline Solutions'];
+
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function generateSeedData(fullName) {
+    // Target combined balance: comfortably above $600,000
+    const totalBalance = Math.round(rand(650000, 1150000) * 100) / 100;
+    const checkingBalance = Math.round(totalBalance * rand(0.25, 0.35) * 100) / 100;
+    const savingsBalance = Math.round((totalBalance - checkingBalance) * 100) / 100;
+
+    const start = new Date('2022-01-01').getTime();
+    const end = Date.now();
+    const txCount = 46;
+    const items = [];
+
+    for (let i = 0; i < txCount; i++) {
+      const date = new Date(start + Math.random() * (end - start));
+      const isSalary = Math.random() < 0.12;
+      const isTransferOut = Math.random() < 0.15;
+      let description, amount, category;
+
+      if (isSalary) {
+        description = `Salary — ${pick(EMPLOYERS)}`;
+        amount = Math.round(rand(4200, 9800) * 100) / 100;
+        category = 'Salary';
+      } else if (isTransferOut) {
+        description = `Transfer to ${pick(PEOPLE)}`;
+        amount = -Math.round(rand(80, 2200) * 100) / 100;
+        category = 'Transfer';
+      } else {
+        const m = pick(MERCHANTS);
+        description = m.name;
+        category = m.category;
+        amount = -Math.round(rand(12, 480) * 100) / 100;
+      }
+
+      items.push({ date: date.toISOString(), description, amount, category });
+    }
+
+    items.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Balance the ledger: opening deposit makes the running total land exactly on totalBalance
+    const sumOfGenerated = items.reduce((s, t) => s + t.amount, 0);
+    const openingAmount = Math.round((totalBalance - sumOfGenerated) * 100) / 100;
+    items.unshift({
+      date: new Date('2022-01-01').toISOString(),
+      description: `Opening deposit — ${fullName}`,
+      amount: openingAmount,
+      category: 'Opening balance'
+    });
+
+    return { checkingBalance, savingsBalance, transactions: items };
+  }
+
+  createBtn.addEventListener('click', async () => {
+    const first = document.getElementById('first-name').value.trim();
+    const last = document.getElementById('last-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const phone = document.getElementById('signup-phone').value.trim();
+    const pass = document.getElementById('signup-password').value;
+    const confirm = document.getElementById('signup-confirm').value;
+    err.classList.remove('show');
+
+    if (!first || !last || !email || !phone || !pass || !confirm) {
+      err.textContent = 'Please fill in every field before continuing.';
+      err.classList.add('show');
+      return;
+    }
+    if (pass.length < 8) {
+      err.textContent = 'Password must be at least 8 characters.';
+      err.classList.add('show');
+      return;
+    }
+    if (pass !== confirm) {
+      err.textContent = 'Passwords do not match.';
+      err.classList.add('show');
+      return;
+    }
+
+    createBtn.disabled = true;
+    createBtn.textContent = 'Creating account…';
+
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      const fullName = `${first} ${last}`;
+
+      // Store the profile info Firebase Auth doesn't hold itself
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        firstName: first,
+        lastName: last,
+        email: email,
+        phone: phone,
+        profilePictureURL: null,
+        createdAt: serverTimestamp()
+      });
+
+      // Auto-generate starting balances and a full transaction history
+      const seed = generateSeedData(fullName);
+
+      await setDoc(doc(db, 'accounts', cred.user.uid), {
+        checkingBalance: seed.checkingBalance,
+        savingsBalance: seed.savingsBalance,
+        updatedAt: serverTimestamp()
+      });
+
+      await setDoc(doc(db, 'transactions', cred.user.uid), {
+        items: seed.transactions
+      });
+
+      // Auto-create a virtual card for every new account (so Cards tab works immediately).
+      const now = Date.now();
+      const expiry = (() => {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() + 4);
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${mm}/${yy}`;
+      })();
+
+      const fakeNumber = (() => {
+        const groups = [];
+        for (let g = 0; g < 4; g++) groups.push(String(Math.floor(1000 + Math.random() * 9000)));
+        return groups.join(' ');
+      })();
+
+      const fakeCvv = String(Math.floor(100 + Math.random() * 900));
+
+      await setDoc(doc(db, 'cards', cred.user.uid), {
+        cards: [
+          {
+            id: 'card_' + now,
+            number: fakeNumber,
+            cvv: fakeCvv,
+            nickname: 'Main card',
+            expiry,
+            status: 'active',
+            balance: 0,
+            limit: 1000,
+            activity: []
+          }
+        ]
+      });
+
+      window.location.href = `login.html?justSignedUp=1&email=${encodeURIComponent(email)}`;
+
+
+
+    } catch (e) {
+      createBtn.disabled = false;
+      createBtn.textContent = 'Continue to verification';
+
+      if (e.code === 'auth/email-already-in-use') {
+        err.textContent = 'An account with that email already exists. Try logging in instead.';
+      } else if (e.code === 'auth/invalid-email') {
+        err.textContent = 'That email address doesn\'t look right.';
+      } else if (e.code === 'auth/weak-password') {
+        err.textContent = 'Choose a stronger password (at least 8 characters).';
+      } else {
+        err.textContent = 'Something went wrong creating your account. Please try again.';
+      }
+      err.classList.add('show');
+      console.error(e);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Log in — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  .authwrap{
+    min-height:calc(100vh - 76px);
+    display:flex; align-items:center; justify-content:center;
+    padding:60px 20px;
+  }
+  .authcard{
+    width:100%; max-width:420px;
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    padding:40px 36px;
+    position:relative;
+  }
+  .authcard::before{
+    content:'AURIX'; position:absolute; top:20px; right:22px; font-family:'Fraunces', serif;
+    font-size:10px; letter-spacing:0.24em; color:var(--brass-dim); border:1px solid var(--brass-dim);
+    padding:4px 9px; border-radius:50%; transform:rotate(8deg); opacity:0.6;
+  }
+  .authcard h1{
+    font-family:'Fraunces', serif; font-size:28px; font-weight:600; color:var(--paper);
+    margin-bottom:8px;
+  }
+  .authcard p.sub{ color:var(--slate); font-size:14px; margin-bottom:30px; }
+
+  .field{ margin-bottom:18px; }
+  .field label{
+    display:block; font-size:12.5px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--slate-dim); margin-bottom:8px;
+  }
+  .field input{
+    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px;
+    padding:13px 14px; font-size:15px; color:var(--paper); font-family:'Inter', sans-serif;
+    outline:none; transition:border-color .15s ease;
+  }
+  .field input:focus{ border-color:var(--brass); }
+  .field input::placeholder{ color:var(--slate-dim); }
+
+  .row-between{ display:flex; justify-content:space-between; align-items:center; margin-bottom:26px; font-size:13px; }
+  .row-between a{ color:var(--brass); }
+  .row-between a:hover{ text-decoration:underline; }
+  .remember{ display:flex; align-items:center; gap:8px; color:var(--slate); }
+
+  .authcard .btn{ width:100%; padding:13px; font-size:15px; }
+  .err{
+    background:rgba(201,90,90,0.1); border:1px solid rgba(201,90,90,0.3); color:#E1948F;
+    font-size:13px; padding:11px 14px; border-radius:4px; margin-bottom:18px; display:none;
+  }
+  .err.show{ display:block; }
+
+  .switch{ text-align:center; margin-top:26px; font-size:13.5px; color:var(--slate); }
+  .switch a{ color:var(--brass); }
+  .switch a:hover{ text-decoration:underline; }
+
+  /* OTP step */
+  #otp-step{ display:none; }
+  .otp-inputs{ display:flex; gap:10px; margin-bottom:24px; }
+  .otp-inputs input{
+    width:100%; aspect-ratio:1; text-align:center; font-size:22px;
+    background:var(--ink); border:1px solid var(--line); border-radius:4px;
+    color:var(--paper); font-family:'IBM Plex Mono', monospace; outline:none;
+    transition:border-color .15s ease;
+  }
+  .otp-inputs input:focus{ border-color:var(--brass); }
+  .otp-meta{ display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--slate); margin-bottom:22px; }
+  .otp-meta a{ color:var(--brass); cursor:pointer; }
+  .otp-meta a.disabled{ color:var(--slate-dim); pointer-events:none; }
+  .sentto{ font-size:13.5px; color:var(--slate); margin-bottom:22px; padding:12px 14px; background:var(--ink); border:1px solid var(--line); border-radius:4px; }
+  .sentto strong{ color:var(--paper); }
+  .back-link{ display:inline-block; margin-bottom:20px; font-size:13px; color:var(--slate-dim); }
+  .back-link:hover{ color:var(--paper); }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header>
+  <div class="wrap nav">
+    <a href="index.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <div class="navcta">
+      <span style="color:var(--slate); font-size:13.5px;">New here?</span>
+      <a href="signup.html" class="btn btn-ghost">Open an account</a>
+    </div>
+  </div>
+</header>
+
+<div class="authwrap">
+  <div class="authcard">
+
+    <!-- Step 1: email + password -->
+    <div id="password-step">
+      <h1>Welcome back</h1>
+      <p class="sub">Log in to your Aurix account.</p>
+
+      <div class="err" id="password-err">That email and password combination doesn't match our records.</div>
+
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <div class="row-between">
+        <label class="remember"><input type="checkbox" id="remember"> Remember this device</label>
+        <a href="#">Forgot password?</a>
+      </div>
+
+      <button class="btn btn-brass" id="continue-btn">Continue</button>
+
+      <p class="switch">Don't have an account? <a href="signup.html">Open one</a></p>
+    </div>
+
+    <!-- Step 2: OTP -->
+    <div id="otp-step">
+      <a class="back-link" id="back-to-password">&larr; Back</a>
+      <h1>Verify it's you</h1>
+      <p class="sub">We've sent a 6-digit code to your email.</p>
+
+      <div class="sentto">Code sent to <strong id="sent-email-display">you@example.com</strong></div>
+
+      <div class="err" id="otp-err">That code is incorrect. Check your email and try again.</div>
+
+      <div class="otp-inputs">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-digit">
+      </div>
+
+      <div class="otp-meta">
+        <span id="otp-timer">Code expires in <span class="mono">05:00</span></span>
+        <a id="resend-link">Resend code</a>
+      </div>
+
+      <button class="btn btn-brass" id="verify-btn">Verify and log in</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // EmailJS setup
+  const EMAILJS_SERVICE_ID = "service_k8iij0s";
+  const EMAILJS_TEMPLATE_ID = "template_zdnrsk1";
+  const EMAILJS_PUBLIC_KEY = "cXqOs1dUmERO4NKdN";
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+  const OTP_TTL_MS = 5 * 60 * 1000;
+
+  function generateOtp() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  async function sendOtp(email) {
+    const otp = generateOtp();
+    const expiresAt = Timestamp.fromMillis(Date.now() + OTP_TTL_MS);
+
+    await setDoc(doc(db, "otps", email.toLowerCase()), {
+      otp,
+      expiresAt,
+      attempts: 0
+    });
+
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: email,
+      otp_code: otp
+    });
+  }
+
+  async function verifyOtp(email, entered) {
+    const ref = doc(db, "otps", email.toLowerCase());
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      return { success: false, message: "No code was requested for this email. Try resending." };
+    }
+    const data = snap.data();
+
+    if (Date.now() > data.expiresAt.toMillis()) {
+      await deleteDoc(ref);
+      return { success: false, message: "Code expired. Please resend." };
+    }
+    if (data.attempts >= 5) {
+      await deleteDoc(ref);
+      return { success: false, message: "Too many attempts. Please resend." };
+    }
+    if (data.otp !== entered) {
+      await setDoc(ref, { ...data, attempts: data.attempts + 1 });
+      return { success: false, message: "That code is incorrect. Check your email and try again." };
+    }
+
+    await deleteDoc(ref);
+    return { success: true };
+  }
+
+  // ---- UI wiring ----
+  const passwordStep = document.getElementById('password-step');
+  const otpStep = document.getElementById('otp-step');
+  const continueBtn = document.getElementById('continue-btn');
+  const verifyBtn = document.getElementById('verify-btn');
+  const backLink = document.getElementById('back-to-password');
+  const resendLink = document.getElementById('resend-link');
+  const sentEmailDisplay = document.getElementById('sent-email-display');
+  const passwordErr = document.getElementById('password-err');
+  const otpErr = document.getElementById('otp-err');
+  const otpDigits = Array.from(document.querySelectorAll('.otp-digit'));
+  const otpTimerEl = document.getElementById('otp-timer').querySelector('.mono');
+
+  let timerInterval;
+  let currentEmail = '';
+
+  function startTimer(seconds = 300) {
+    clearInterval(timerInterval);
+    resendLink.classList.add('disabled');
+    let remaining = seconds;
+    updateTimerDisplay(remaining);
+    timerInterval = setInterval(() => {
+      remaining--;
+      updateTimerDisplay(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        resendLink.classList.remove('disabled');
+        otpTimerEl.textContent = 'expired';
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay(remaining) {
+    const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+    const s = (remaining % 60).toString().padStart(2, '0');
+    otpTimerEl.textContent = `${m}:${s}`;
+  }
+
+  continueBtn.addEventListener('click', async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    passwordErr.classList.remove('show');
+
+    if (!email || !password) {
+      passwordErr.textContent = 'Enter your email and password to continue.';
+      passwordErr.classList.add('show');
+      return;
+    }
+
+    continueBtn.disabled = true;
+    continueBtn.textContent = 'Checking…';
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+
+      currentEmail = email;
+      await sendOtp(email);
+
+      sentEmailDisplay.textContent = email;
+      passwordStep.style.display = 'none';
+      otpStep.style.display = 'block';
+      otpDigits[0].focus();
+      startTimer(300);
+    } catch (e) {
+      passwordErr.textContent = "That email and password combination doesn't match our records.";
+      passwordErr.classList.add('show');
+      console.error(e);
+    } finally {
+      continueBtn.disabled = false;
+      continueBtn.textContent = 'Continue';
+    }
+  });
+
+  backLink.addEventListener('click', () => {
+    otpStep.style.display = 'none';
+    passwordStep.style.display = 'block';
+    clearInterval(timerInterval);
+  });
+
+  resendLink.addEventListener('click', async () => {
+    if (resendLink.classList.contains('disabled')) return;
+    try {
+      await sendOtp(currentEmail);
+      startTimer(300);
+      otpDigits.forEach(i => i.value = '');
+      otpDigits[0].focus();
+    } catch (e) {
+      otpErr.textContent = 'Could not resend the code. Please try again.';
+      otpErr.classList.add('show');
+      console.error(e);
+    }
+  });
+
+  // OTP box auto-advance / backspace / paste behavior
+  otpDigits.forEach((input, idx) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^0-9]/g, '');
+      if (input.value && idx < otpDigits.length - 1) {
+        otpDigits[idx + 1].focus();
+      }
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && idx > 0) {
+        otpDigits[idx - 1].focus();
+      }
+    });
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+      paste.split('').slice(0, otpDigits.length).forEach((char, i) => {
+        otpDigits[i].value = char;
+      });
+      const nextEmpty = otpDigits.findIndex(i => !i.value);
+      (nextEmpty === -1 ? otpDigits[otpDigits.length - 1] : otpDigits[nextEmpty]).focus();
+    });
+  });
+
+  verifyBtn.addEventListener('click', async () => {
+    const code = otpDigits.map(i => i.value).join('');
+    otpErr.classList.remove('show');
+
+    if (code.length < 6) {
+      otpErr.textContent = 'Enter all 6 digits.';
+      otpErr.classList.add('show');
+      return;
+    }
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying…';
+
+    try {
+      const result = await verifyOtp(currentEmail, code);
+      if (result.success) {
+        window.location.href = 'dashboard.html';
+      } else {
+        otpErr.textContent = result.message;
+        otpErr.classList.add('show');
+      }
+    } catch (e) {
+      otpErr.textContent = 'Something went wrong verifying that code. Please try again.';
+      otpErr.classList.add('show');
+      console.error(e);
+    } finally {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify and log in';
+    }
+  });
+</script>
+
+</body>
+</html>

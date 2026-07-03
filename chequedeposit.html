@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cheque Deposit — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .deposit-layout{ display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+  @media (max-width:900px){ .deposit-layout{ grid-template-columns:1fr; } }
+
+  /* ── Upload boxes ───────────────────────────────────────────── */
+  .upload-area{ margin-bottom:20px; }
+  .side-label{ font-size:12.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--slate-dim); margin-bottom:8px; }
+
+  .upload-box{
+    border:1.5px dashed var(--line); border-radius:8px; padding:22px; text-align:center;
+    background:var(--ink); cursor:pointer; transition:border-color .15s ease, background .15s ease;
+    min-height:170px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    position:relative; overflow:hidden;
+  }
+  .upload-box:hover{ border-color:var(--brass); background:var(--panel); }
+  .upload-box input[type="file"]{ display:none; }
+  .upload-box .ic{ font-size:26px; color:var(--brass-dim); margin-bottom:10px; }
+  .upload-box p{ font-size:13px; color:var(--slate); margin:0; }
+  .upload-box .hint{ font-size:11.5px; color:var(--slate-dim); margin-top:6px; }
+
+  /* Preview state */
+  .upload-box.has-preview{ padding:0; cursor:default; }
+  .upload-box.has-preview img{ width:100%; display:block; max-height:200px; object-fit:cover; }
+  .change-btn{
+    position:absolute; bottom:8px; right:8px;
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    font-size:12px; padding:4px 10px; color:var(--slate); cursor:pointer; z-index:2;
+  }
+  .change-btn:hover{ border-color:var(--brass); color:var(--brass); }
+
+  /* Verification feedback under each upload box */
+  .verify-feedback{
+    display:none; align-items:flex-start; gap:8px; margin-top:10px;
+    padding:10px 13px; border-radius:6px; font-size:13px; line-height:1.5;
+  }
+  .verify-feedback.show{ display:flex; }
+  .verify-feedback.accepted{
+    background:rgba(62,145,99,0.08); border:1px solid rgba(62,145,99,0.3); color:#2E7A4C;
+  }
+  .verify-feedback.declined{
+    background:rgba(196,60,60,0.08); border:1px solid rgba(196,60,60,0.3); color:#B3261E;
+  }
+  .verify-feedback.checking{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--slate);
+  }
+  .verify-feedback .dot{ flex-shrink:0; font-size:14px; margin-top:1px; }
+
+  /* ── Eligibility checks ─────────────────────────────────────── */
+  .check-row{
+    display:flex; align-items:flex-start; gap:10px;
+    padding:11px 0; border-bottom:1px solid var(--line); font-size:13.5px;
+  }
+  .check-row:last-child{ border-bottom:none; }
+  .check-mark{
+    width:18px; height:18px; border-radius:50%; flex-shrink:0; margin-top:1px;
+    display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;
+  }
+  .check-mark.pending{ background:var(--panel-2); color:var(--slate-dim); }
+  .check-mark.pass{ background:rgba(62,145,99,0.15); color:var(--good); }
+  .check-mark.fail{ background:rgba(196,60,60,0.1); color:#B3261E; }
+
+  /* ── Authentication overlay ─────────────────────────────────── */
+  .auth-overlay{
+    display:none; position:fixed; inset:0; background:rgba(30,42,61,0.6);
+    z-index:200; align-items:center; justify-content:center; padding:20px;
+  }
+  .auth-overlay.show{ display:flex; }
+  .auth-box{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:36px 32px; max-width:420px; width:100%; text-align:center;
+  }
+  .auth-box h3{
+    font-family:'Fraunces', serif; font-size:20px; color:var(--paper);
+    margin-bottom:8px;
+  }
+  .auth-spinner{
+    width:40px; height:40px; border:3px solid var(--line);
+    border-top-color:var(--brass); border-radius:50%;
+    animation:spin .8s linear infinite; margin:20px auto;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .auth-step{ font-size:13.5px; color:var(--slate); min-height:22px; margin-bottom:20px; }
+
+  /* Step progress dots */
+  .auth-steps-track{ display:flex; justify-content:center; gap:6px; margin-bottom:22px; }
+  .auth-step-dot{
+    width:6px; height:6px; border-radius:50%; background:var(--line); transition:background .3s;
+  }
+  .auth-step-dot.done{ background:var(--brass); }
+  .auth-step-dot.active{ background:var(--brass); box-shadow:0 0 0 3px rgba(62,111,166,0.2); }
+
+  /* Auth result (shown after steps complete) */
+  .auth-result{ display:none; }
+  .auth-result.show{ display:block; }
+  .auth-result-icon{ font-size:36px; margin-bottom:12px; }
+  .auth-result-title{ font-size:17px; font-weight:700; margin-bottom:6px; }
+  .auth-result-msg{ font-size:13.5px; color:var(--slate); margin-bottom:22px; }
+  .auth-result.failed .auth-result-title{ color:#B3261E; }
+  .auth-result.failed .auth-result-icon{ filter:none; }
+
+  /* ── History ────────────────────────────────────────────────── */
+  .dep-status{
+    display:inline-block; font-size:11px; font-weight:600; letter-spacing:0.05em;
+    padding:2px 9px; border-radius:20px;
+  }
+  .dep-status.pending{ background:rgba(196,150,60,0.1); color:#8A6A1E; }
+  .dep-status.failed{ background:rgba(196,60,60,0.1); color:#B3261E; }
+  .dep-status.approved{ background:rgba(62,145,99,0.1); color:#2E7A4C; }
+
+  @media (max-width:480px){
+    .auth-box{ padding:26px 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="appshell">
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <nav>
+      <a href="dashboard.html"><span class="ic">◆</span>Dashboard</a>
+      <a href="accounts.html"><span class="ic">▤</span>Accounts</a>
+      <a href="transfers.html"><span class="ic">⇄</span>Transfers</a>
+      <a href="billpayments.html"><span class="ic">▦</span>Bill Payments</a>
+      <a href="cards.html"><span class="ic">▭</span>Cards</a>
+      <a href="chequedeposit.html" class="active"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="#"><span class="ic">%</span>Loans</a>
+      <a href="#"><span class="ic">⚑</span>Notifications</a>
+      <a href="#"><span class="ic">◎</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" id="logout-link">Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open menu">☰</button>
+      <div class="topbar-search"><input type="text" placeholder="Search transactions, accounts..."></div>
+      <div class="topbar-right">
+        <span class="bell">⚑<span class="dotbadge"></span></span>
+        <div class="avatar-btn" id="topbar-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content-pad">
+      <div class="welcome-row">
+        <div>
+          <h1>Cheque deposit</h1>
+          <div class="lastlogin">Photograph or upload both sides of your cheque to deposit it.</div>
+        </div>
+      </div>
+
+      <div class="deposit-layout">
+
+        <!-- LEFT: upload + details ──────────────────────────── -->
+        <div>
+          <div class="card reveal">
+            <div class="card-head"><h3>1. Upload cheque images</h3></div>
+
+            <!-- Front upload -->
+            <div class="upload-area">
+              <div class="side-label">Front of cheque</div>
+              <label class="upload-box" id="front-box" for="front-input">
+                <span class="ic">⎘</span>
+                <p>Click to upload the front of the cheque</p>
+                <span class="hint">JPG, PNG or HEIC — max 15 MB</span>
+                <input type="file" id="front-input" accept="image/*">
+              </label>
+              <div class="verify-feedback checking" id="front-checking">
+                <span class="dot">⟳</span>
+                <span>Analysing image…</span>
+              </div>
+              <div class="verify-feedback accepted" id="front-accepted">
+                <span class="dot">✓</span>
+                <span id="front-accepted-msg">Image recognised as a valid cheque.</span>
+              </div>
+              <div class="verify-feedback declined" id="front-declined">
+                <span class="dot">✕</span>
+                <span id="front-declined-msg">This image does not appear to be a cheque. Please upload a clear photo of the front of your cheque.</span>
+              </div>
+            </div>
+
+            <!-- Back upload -->
+            <div class="upload-area">
+              <div class="side-label">Back of cheque (signed for deposit)</div>
+              <label class="upload-box" id="back-box" for="back-input">
+                <span class="ic">⎘</span>
+                <p>Click to upload the back of the cheque</p>
+                <span class="hint">Must show your endorsement signature</span>
+                <input type="file" id="back-input" accept="image/*">
+              </label>
+              <div class="verify-feedback checking" id="back-checking">
+                <span class="dot">⟳</span>
+                <span>Analysing image…</span>
+              </div>
+              <div class="verify-feedback accepted" id="back-accepted">
+                <span class="dot">✓</span>
+                <span id="back-accepted-msg">Image recognised — back of cheque confirmed.</span>
+              </div>
+              <div class="verify-feedback declined" id="back-declined">
+                <span class="dot">✕</span>
+                <span id="back-declined-msg">This image does not appear to be the back of a cheque.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal">
+            <div class="card-head"><h3>2. Deposit details</h3></div>
+            <div class="form-grid">
+              <div class="form-field">
+                <label>Deposit into</label>
+                <select id="deposit-account">
+                  <option value="checking">Checking</option>
+                  <option value="savings">Savings</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Cheque amount (USD)</label>
+                <input type="number" id="deposit-amount" min="1" step="0.01" placeholder="0.00">
+              </div>
+            </div>
+            <div class="form-error" id="deposit-error" style="margin-bottom:14px;">
+              Upload and verify both sides of the cheque and enter a valid amount before submitting.
+            </div>
+            <!-- Save error (Firestore) -->
+            <div class="modal-save-error" id="deposit-save-error" style="
+              background:rgba(196,60,60,0.08); border:1px solid rgba(196,60,60,0.3); color:#B3261E;
+              font-size:13px; padding:11px 14px; border-radius:4px; margin-bottom:14px; display:none;">
+              Could not save deposit record. Check your connection and try again.
+            </div>
+            <button class="btn btn-brass" id="submit-deposit" type="button" style="width:100%;">
+              Submit for verification
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT: eligibility + history ────────────────────── -->
+        <div>
+          <div class="card reveal">
+            <div class="card-head"><h3>Eligibility check</h3></div>
+            <div id="eligibility-list">
+              <div class="check-row" id="chk-front">
+                <div class="check-mark pending" id="chk-front-mark">○</div>
+                <div>Front image uploaded and verified as a cheque</div>
+              </div>
+              <div class="check-row" id="chk-back">
+                <div class="check-mark pending" id="chk-back-mark">○</div>
+                <div>Back image uploaded and verified as a cheque</div>
+              </div>
+              <div class="check-row" id="chk-amount">
+                <div class="check-mark pending" id="chk-amount-mark">○</div>
+                <div>A valid cheque amount has been entered</div>
+              </div>
+              <div class="check-row" id="chk-ready">
+                <div class="check-mark pending" id="chk-ready-mark">○</div>
+                <div>Ready to submit for bank authentication</div>
+              </div>
+            </div>
+            <p style="font-size:12px; color:var(--slate-dim); margin-top:14px; margin-bottom:0;">
+              Images are checked against cheque recognition criteria. Final authentication is performed by our payments team and may take 1–2 business days.
+            </p>
+          </div>
+
+          <div class="card reveal">
+            <div class="card-head"><h3>Recent deposits</h3></div>
+            <div id="deposit-history">
+              <div class="empty-state"><div class="ic">⎘</div><p>No cheque deposits yet.</p></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Authentication overlay ──────────────────────────────── -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-box">
+
+    <!-- Spinner phase -->
+    <div id="auth-spinner-phase">
+      <h3>Authenticating cheque</h3>
+      <div class="auth-spinner"></div>
+      <div class="auth-step" id="auth-step-label">Uploading cheque images…</div>
+      <div class="auth-steps-track">
+        <div class="auth-step-dot active" id="dot-0"></div>
+        <div class="auth-step-dot" id="dot-1"></div>
+        <div class="auth-step-dot" id="dot-2"></div>
+        <div class="auth-step-dot" id="dot-3"></div>
+        <div class="auth-step-dot" id="dot-4"></div>
+      </div>
+    </div>
+
+    <!-- Result phase (always failure for demo) -->
+    <div class="auth-result failed" id="auth-result-phase">
+      <div class="auth-result-icon">✕</div>
+      <div class="auth-result-title">Authentication declined</div>
+      <div class="auth-result-msg" id="auth-result-msg">
+        We were unable to verify this cheque with the issuing bank. The deposit has been logged as declined. Please visit a branch or contact support if you believe this is an error.
+      </div>
+      <button class="btn btn-ghost" id="auth-dismiss-btn" style="width:100%;">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  // ── State ─────────────────────────────────────────────────────
+  let uid          = null;
+  let profileData  = {};
+  let depositsData = { items: [] };
+
+  let frontFile     = null, backFile     = null;
+  let frontVerified = false, backVerified = false;
+  let frontChecking = false, backChecking = false;
+
+  // ── Helpers ───────────────────────────────────────────────────
+  function money(n) {
+    const parts = Math.abs(n).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `$${parts[0]}.${parts[1]}`;
+  }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Show/hide feedback banners under each upload box
+  function showFeedback(side, state, msg) {
+    // state: 'checking' | 'accepted' | 'declined' | 'none'
+    ['checking','accepted','declined'].forEach(s => {
+      const el = document.getElementById(`${side}-${s}`);
+      if (el) el.classList.remove('show');
+    });
+    if (state === 'none') return;
+    const el = document.getElementById(`${side}-${state}`);
+    if (!el) return;
+    if (msg) {
+      const msgEl = document.getElementById(`${side}-${state}-msg`);
+      if (msgEl) msgEl.textContent = msg;
+    }
+    el.classList.add('show');
+  }
+
+  // Update the eligibility checklist
+  function updateEligibility() {
+    setCheck('front',  frontVerified  ? 'pass' : (frontFile  ? 'fail' : 'pending'));
+    setCheck('back',   backVerified   ? 'pass' : (backFile   ? 'fail' : 'pending'));
+    const amount = parseFloat(document.getElementById('deposit-amount').value);
+    setCheck('amount', amount > 0 ? 'pass' : 'pending');
+    const ready = frontVerified && backVerified && amount > 0;
+    setCheck('ready', ready ? 'pass' : 'pending');
+  }
+  function setCheck(key, state) {
+    const mark = document.getElementById(`chk-${key}-mark`);
+    if (!mark) return;
+    mark.className = `check-mark ${state}`;
+    mark.textContent = state === 'pass' ? '✓' : state === 'fail' ? '✕' : '○';
+  }
+  document.getElementById('deposit-amount').addEventListener('input', updateEligibility);
+
+  // ── Image → base64 ────────────────────────────────────────────
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ── Call the Vercel verify-cheque function ────────────────────
+  async function verifyChequeImage(file) {
+    const base64 = await fileToBase64(file);
+    const mediaType = file.type || 'image/jpeg';
+
+    const res = await fetch('/api/verify-cheque', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64, mediaType })
+    });
+
+    if (!res.ok) {
+      return { isCheck: false, reason: 'Image analysis service unavailable. Please try again.' };
+    }
+    return await res.json();
+  }
+
+  // ── Set up one upload box ─────────────────────────────────────
+  function setupUploadBox(side) {
+    const boxId   = `${side}-box`;
+    const inputId = `${side}-input`;
+    const box     = document.getElementById(boxId);
+    const input   = document.getElementById(inputId);
+
+    box.addEventListener('click', (e) => {
+      if (e.target.closest('.change-btn')) return;
+      input.click();
+    });
+
+    input.addEventListener('change', async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      // Clear previous state for this side
+      if (side === 'front') { frontFile = file; frontVerified = false; frontChecking = true; }
+      else                  { backFile  = file; backVerified  = false; backChecking  = true; }
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        box.classList.add('has-preview');
+        box.innerHTML = `
+          <img src="${e.target.result}" alt="${side} of cheque">
+          <button class="change-btn" type="button">Change</button>
+          <input type="file" id="${inputId}" accept="image/*" style="display:none;">
+        `;
+        // Re-attach the change listener on the new input
+        document.getElementById(inputId).addEventListener('change', async () => {
+          setupUploadBox(side); // re-run on the replaced element
+        });
+        // Re-attach the change button
+        box.querySelector('.change-btn').addEventListener('click', () => {
+          document.getElementById(inputId).click();
+        });
+      };
+      reader.readAsDataURL(file);
+
+      // Show "checking" banner immediately
+      showFeedback(side, 'checking');
+      updateEligibility();
+
+      // Send to API for verification
+      try {
+        const result = await verifyChequeImage(file);
+        if (side === 'front') frontChecking = false;
+        else                  backChecking  = false;
+
+        if (result.isCheck) {
+          if (side === 'front') frontVerified = true;
+          else                  backVerified  = true;
+          showFeedback(side, 'accepted', result.reason);
+        } else {
+          showFeedback(side, 'declined', result.reason);
+        }
+      } catch (err) {
+        console.error('Verify error:', err);
+        if (side === 'front') frontChecking = false;
+        else                  backChecking  = false;
+        showFeedback(side, 'declined', 'Could not analyse this image. Please try a clearer photo.');
+      }
+
+      updateEligibility();
+    });
+  }
+
+  setupUploadBox('front');
+  setupUploadBox('back');
+
+  // ── Authentication overlay flow (always fails — demo) ─────────
+  const AUTH_STEPS = [
+    'Uploading cheque images…',
+    'Reading MICR encoding…',
+    'Verifying account details with issuing bank…',
+    'Contacting payment network…',
+    'Finalising authentication…'
+  ];
+  // Possible decline messages — pick randomly each time for realism
+  const DECLINE_MESSAGES = [
+    'We were unable to verify this cheque with the issuing bank. The deposit has been logged as declined. Please visit a branch or contact support if you believe this is an error.',
+    'Authentication could not be completed — the issuing bank returned a verification failure. Your deposit has been recorded as declined.',
+    'Our fraud detection system flagged this cheque for manual review. The deposit is declined at this time. Please contact support with your cheque reference number.'
+  ];
+
+  async function runAuthAnimation() {
+    const overlay      = document.getElementById('auth-overlay');
+    const spinnerPhase = document.getElementById('auth-spinner-phase');
+    const resultPhase  = document.getElementById('auth-result-phase');
+    const stepLabel    = document.getElementById('auth-step-label');
+    const resultMsg    = document.getElementById('auth-result-msg');
+
+    // Reset
+    spinnerPhase.style.display = 'block';
+    resultPhase.classList.remove('show');
+    overlay.classList.add('show');
+
+    // Walk through steps
+    for (let i = 0; i < AUTH_STEPS.length; i++) {
+      // Activate current dot, mark previous as done
+      for (let d = 0; d < AUTH_STEPS.length; d++) {
+        const dot = document.getElementById(`dot-${d}`);
+        if (!dot) continue;
+        dot.classList.remove('active','done');
+        if (d < i)  dot.classList.add('done');
+        if (d === i) dot.classList.add('active');
+      }
+      stepLabel.textContent = AUTH_STEPS[i];
+      await sleep(1100 + Math.random() * 400);
+    }
+
+    // All dots done
+    for (let d = 0; d < AUTH_STEPS.length; d++) {
+      const dot = document.getElementById(`dot-${d}`);
+      if (dot) { dot.classList.remove('active'); dot.classList.add('done'); }
+    }
+
+    // Brief pause then show result
+    await sleep(600);
+    spinnerPhase.style.display = 'none';
+    resultMsg.textContent = DECLINE_MESSAGES[Math.floor(Math.random() * DECLINE_MESSAGES.length)];
+    resultPhase.classList.add('show');
+  }
+
+  document.getElementById('auth-dismiss-btn').addEventListener('click', () => {
+    document.getElementById('auth-overlay').classList.remove('show');
+    renderHistory();
+  });
+
+  // ── Submit deposit ────────────────────────────────────────────
+  document.getElementById('submit-deposit').addEventListener('click', async () => {
+    const errEl     = document.getElementById('deposit-error');
+    const saveErrEl = document.getElementById('deposit-save-error');
+    errEl.classList.remove('show');
+    saveErrEl.style.display = 'none';
+
+    const amount  = parseFloat(document.getElementById('deposit-amount').value);
+    const account = document.getElementById('deposit-account').value;
+
+    // Validation
+    if (!frontFile || !backFile) {
+      errEl.textContent = 'Please upload both the front and back images of your cheque.';
+      errEl.classList.add('show');
+      return;
+    }
+    if (!frontVerified || !backVerified) {
+      errEl.textContent = 'Both cheque images must be verified before submitting. Please upload valid cheque photos.';
+      errEl.classList.add('show');
+      return;
+    }
+    if (!amount || amount <= 0) {
+      errEl.textContent = 'Enter the cheque amount before submitting.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    const btn = document.getElementById('submit-deposit');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    // Save record to Firestore as "Pending authentication" first
+    const newDeposit = {
+      id:      'DEP-' + Math.random().toString(36).slice(2,10).toUpperCase(),
+      account,
+      amount,
+      status:  'Pending authentication',
+      date:    new Date().toISOString()
+    };
+    depositsData.items.push(newDeposit);
+
+    try {
+      await setDoc(doc(db, 'chequeDeposits', uid), depositsData);
+    } catch (e) {
+      console.error('Could not save deposit record:', e);
+      depositsData.items.pop(); // roll back
+      saveErrEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Submit for verification';
+      return;
+    }
+
+    // Run the authentication animation (always ends in failure)
+    await runAuthAnimation();
+
+    // Update the record status to "Declined" in Firestore
+    newDeposit.status = 'Declined';
+    try {
+      await setDoc(doc(db, 'chequeDeposits', uid), depositsData);
+    } catch (e) {
+      // Non-critical — record is already saved as Pending, log and continue
+      console.error('Could not update deposit status to Declined:', e);
+    }
+
+    // Reset form
+    btn.disabled = false;
+    btn.textContent = 'Submit for verification';
+    document.getElementById('deposit-amount').value = '';
+    frontFile = null; backFile = null;
+    frontVerified = false; backVerified = false;
+    ['front','back'].forEach(side => {
+      const box = document.getElementById(`${side}-box`);
+      box.classList.remove('has-preview');
+      box.innerHTML = `
+        <span class="ic">⎘</span>
+        <p>Click to upload the ${side} of the cheque</p>
+        <span class="hint">${side === 'front' ? 'JPG, PNG or HEIC — max 15 MB' : 'Must show your endorsement signature'}</span>
+        <input type="file" id="${side}-input" accept="image/*" style="display:none;">
+      `;
+      setupUploadBox(side);
+      showFeedback(side, 'none');
+    });
+    updateEligibility();
+  });
+
+  // ── Render deposit history ────────────────────────────────────
+  function renderHistory() {
+    const list  = document.getElementById('deposit-history');
+    const items = [...depositsData.items].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+    if (items.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="ic">⎘</div><p>No cheque deposits yet.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(d => {
+      const statusClass = d.status.toLowerCase().includes('declin') ? 'failed'
+                        : d.status.toLowerCase().includes('pend')   ? 'pending'
+                        : 'approved';
+      return `
+        <div class="txn-row">
+          <div class="who">
+            <span class="desc">Cheque deposit — ${d.account === 'checking' ? 'Checking' : 'Savings'}</span>
+            <span class="meta">${new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · <span class="dep-status ${statusClass}">${d.status}</span></span>
+          </div>
+          <div class="txn-amt ${statusClass === 'approved' ? 'pos' : 'neg'}">
+            ${statusClass === 'approved' ? '+' : '−'} ${money(d.amount)}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Scroll reveal ─────────────────────────────────────────────
+  document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 80}ms`; });
+  const ro = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-visible'); ro.unobserve(e.target); } });
+  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
+  setTimeout(() => { document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible')); }, 2000);
+
+  // ── Auth ──────────────────────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    uid = user.uid;
+
+    try {
+      const [userSnap, depSnap] = await Promise.all([
+        getDoc(doc(db, 'users', uid)),
+        getDoc(doc(db, 'chequeDeposits', uid))
+      ]);
+      profileData  = userSnap.exists() ? userSnap.data() : {};
+      depositsData = depSnap.exists()  ? depSnap.data()  : { items: [] };
+    } catch (e) {
+      console.error('Could not load deposit history:', e);
+    }
+
+    const av = document.getElementById('topbar-avatar');
+    if (profileData.profilePictureURL) {
+      av.innerHTML = `<img src="${profileData.profilePictureURL}" alt="">`;
+    } else {
+      av.textContent = `${(profileData.firstName||'A')[0]}${(profileData.lastName||'')[0]||''}`.toUpperCase();
+    }
+
+    renderHistory();
+    updateEligibility();
+  });
+
+  document.getElementById('logout-link').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = 'login.html';
+  });
+</script>
+
+<script>
+  (function() {
+    var menuToggle = document.getElementById('menu-toggle');
+    var appshell   = document.querySelector('.appshell');
+    var backdrop   = document.getElementById('sidebar-backdrop');
+    if (menuToggle && appshell) {
+      menuToggle.addEventListener('click', function() { appshell.classList.toggle('sidebar-open'); });
+    }
+    if (backdrop && appshell) {
+      backdrop.addEventListener('click', function() { appshell.classList.remove('sidebar-open'); });
+    }
+  })();
+</script>
+
+</body>
+</html>
