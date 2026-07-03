@@ -28,7 +28,6 @@
   .upload-box p{ font-size:13px; color:var(--slate); margin:0; }
   .upload-box .hint{ font-size:11.5px; color:var(--slate-dim); margin-top:6px; }
 
-  /* Preview state */
   .upload-box.has-preview{ padding:0; cursor:default; }
   .upload-box.has-preview img{ width:100%; display:block; max-height:200px; object-fit:cover; }
   .change-btn{
@@ -38,7 +37,7 @@
   }
   .change-btn:hover{ border-color:var(--brass); color:var(--brass); }
 
-  /* Verification feedback under each upload box */
+  /* Verification feedback */
   .verify-feedback{
     display:none; align-items:flex-start; gap:8px; margin-top:10px;
     padding:10px 13px; border-radius:6px; font-size:13px; line-height:1.5;
@@ -49,9 +48,6 @@
   }
   .verify-feedback.declined{
     background:rgba(196,60,60,0.08); border:1px solid rgba(196,60,60,0.3); color:#B3261E;
-  }
-  .verify-feedback.checking{
-    background:var(--panel-2); border:1px solid var(--line); color:var(--slate);
   }
   .verify-feedback .dot{ flex-shrink:0; font-size:14px; margin-top:1px; }
 
@@ -79,10 +75,7 @@
     background:var(--panel); border:1px solid var(--line); border-radius:10px;
     padding:36px 32px; max-width:420px; width:100%; text-align:center;
   }
-  .auth-box h3{
-    font-family:'Fraunces', serif; font-size:20px; color:var(--paper);
-    margin-bottom:8px;
-  }
+  .auth-box h3{ font-family:'Fraunces', serif; font-size:20px; color:var(--paper); margin-bottom:8px; }
   .auth-spinner{
     width:40px; height:40px; border:3px solid var(--line);
     border-top-color:var(--brass); border-radius:50%;
@@ -90,8 +83,6 @@
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
   .auth-step{ font-size:13.5px; color:var(--slate); min-height:22px; margin-bottom:20px; }
-
-  /* Step progress dots */
   .auth-steps-track{ display:flex; justify-content:center; gap:6px; margin-bottom:22px; }
   .auth-step-dot{
     width:6px; height:6px; border-radius:50%; background:var(--line); transition:background .3s;
@@ -99,16 +90,13 @@
   .auth-step-dot.done{ background:var(--brass); }
   .auth-step-dot.active{ background:var(--brass); box-shadow:0 0 0 3px rgba(62,111,166,0.2); }
 
-  /* Auth result (shown after steps complete) */
   .auth-result{ display:none; }
   .auth-result.show{ display:block; }
   .auth-result-icon{ font-size:36px; margin-bottom:12px; }
-  .auth-result-title{ font-size:17px; font-weight:700; margin-bottom:6px; }
+  .auth-result-title{ font-size:17px; font-weight:700; margin-bottom:6px; color:#B3261E; }
   .auth-result-msg{ font-size:13.5px; color:var(--slate); margin-bottom:22px; }
-  .auth-result.failed .auth-result-title{ color:#B3261E; }
-  .auth-result.failed .auth-result-icon{ filter:none; }
 
-  /* ── History ────────────────────────────────────────────────── */
+  /* ── History status badges ──────────────────────────────────── */
   .dep-status{
     display:inline-block; font-size:11px; font-weight:600; letter-spacing:0.05em;
     padding:2px 9px; border-radius:20px;
@@ -117,9 +105,13 @@
   .dep-status.failed{ background:rgba(196,60,60,0.1); color:#B3261E; }
   .dep-status.approved{ background:rgba(62,145,99,0.1); color:#2E7A4C; }
 
-  @media (max-width:480px){
-    .auth-box{ padding:26px 18px; }
+  /* Save error */
+  .save-err{
+    background:rgba(196,60,60,0.08); border:1px solid rgba(196,60,60,0.3); color:#B3261E;
+    font-size:13px; padding:11px 14px; border-radius:4px; margin-bottom:14px; display:none;
   }
+
+  @media (max-width:480px){ .auth-box{ padding:26px 18px; } }
 </style>
 </head>
 <body>
@@ -167,54 +159,46 @@
 
       <div class="deposit-layout">
 
-        <!-- LEFT: upload + details ──────────────────────────── -->
+        <!-- LEFT ──────────────────────────────────────────────── -->
         <div>
           <div class="card reveal">
             <div class="card-head"><h3>1. Upload cheque images</h3></div>
 
-            <!-- Front upload -->
+            <!-- Front -->
             <div class="upload-area">
               <div class="side-label">Front of cheque</div>
-              <label class="upload-box" id="front-box" for="front-input">
+              <div class="upload-box" id="front-box">
                 <span class="ic">⎘</span>
                 <p>Click to upload the front of the cheque</p>
-                <span class="hint">JPG, PNG or HEIC — max 15 MB</span>
+                <span class="hint">JPG or PNG · landscape orientation · max 15 MB</span>
                 <input type="file" id="front-input" accept="image/*">
-              </label>
-              <div class="verify-feedback checking" id="front-checking">
-                <span class="dot">⟳</span>
-                <span>Analysing image…</span>
               </div>
               <div class="verify-feedback accepted" id="front-accepted">
                 <span class="dot">✓</span>
-                <span id="front-accepted-msg">Image recognised as a valid cheque.</span>
+                <span id="front-accepted-msg"></span>
               </div>
               <div class="verify-feedback declined" id="front-declined">
                 <span class="dot">✕</span>
-                <span id="front-declined-msg">This image does not appear to be a cheque. Please upload a clear photo of the front of your cheque.</span>
+                <span id="front-declined-msg"></span>
               </div>
             </div>
 
-            <!-- Back upload -->
+            <!-- Back -->
             <div class="upload-area">
               <div class="side-label">Back of cheque (signed for deposit)</div>
-              <label class="upload-box" id="back-box" for="back-input">
+              <div class="upload-box" id="back-box">
                 <span class="ic">⎘</span>
                 <p>Click to upload the back of the cheque</p>
                 <span class="hint">Must show your endorsement signature</span>
                 <input type="file" id="back-input" accept="image/*">
-              </label>
-              <div class="verify-feedback checking" id="back-checking">
-                <span class="dot">⟳</span>
-                <span>Analysing image…</span>
               </div>
               <div class="verify-feedback accepted" id="back-accepted">
                 <span class="dot">✓</span>
-                <span id="back-accepted-msg">Image recognised — back of cheque confirmed.</span>
+                <span id="back-accepted-msg"></span>
               </div>
               <div class="verify-feedback declined" id="back-declined">
                 <span class="dot">✕</span>
-                <span id="back-declined-msg">This image does not appear to be the back of a cheque.</span>
+                <span id="back-declined-msg"></span>
               </div>
             </div>
           </div>
@@ -234,45 +218,36 @@
                 <input type="number" id="deposit-amount" min="1" step="0.01" placeholder="0.00">
               </div>
             </div>
-            <div class="form-error" id="deposit-error" style="margin-bottom:14px;">
-              Upload and verify both sides of the cheque and enter a valid amount before submitting.
-            </div>
-            <!-- Save error (Firestore) -->
-            <div class="modal-save-error" id="deposit-save-error" style="
-              background:rgba(196,60,60,0.08); border:1px solid rgba(196,60,60,0.3); color:#B3261E;
-              font-size:13px; padding:11px 14px; border-radius:4px; margin-bottom:14px; display:none;">
-              Could not save deposit record. Check your connection and try again.
-            </div>
-            <button class="btn btn-brass" id="submit-deposit" type="button" style="width:100%;">
-              Submit for verification
-            </button>
+            <div class="form-error" id="deposit-error" style="margin-bottom:14px;"></div>
+            <div class="save-err" id="deposit-save-err">Could not save deposit record. Check your connection and try again.</div>
+            <button class="btn btn-brass" id="submit-deposit" type="button" style="width:100%;">Submit for verification</button>
           </div>
         </div>
 
-        <!-- RIGHT: eligibility + history ────────────────────── -->
+        <!-- RIGHT ─────────────────────────────────────────────── -->
         <div>
           <div class="card reveal">
             <div class="card-head"><h3>Eligibility check</h3></div>
             <div id="eligibility-list">
-              <div class="check-row" id="chk-front">
+              <div class="check-row">
                 <div class="check-mark pending" id="chk-front-mark">○</div>
-                <div>Front image uploaded and verified as a cheque</div>
+                <div>Front image uploaded and passes cheque format checks</div>
               </div>
-              <div class="check-row" id="chk-back">
+              <div class="check-row">
                 <div class="check-mark pending" id="chk-back-mark">○</div>
-                <div>Back image uploaded and verified as a cheque</div>
+                <div>Back image uploaded and passes cheque format checks</div>
               </div>
-              <div class="check-row" id="chk-amount">
+              <div class="check-row">
                 <div class="check-mark pending" id="chk-amount-mark">○</div>
                 <div>A valid cheque amount has been entered</div>
               </div>
-              <div class="check-row" id="chk-ready">
+              <div class="check-row">
                 <div class="check-mark pending" id="chk-ready-mark">○</div>
                 <div>Ready to submit for bank authentication</div>
               </div>
             </div>
             <p style="font-size:12px; color:var(--slate-dim); margin-top:14px; margin-bottom:0;">
-              Images are checked against cheque recognition criteria. Final authentication is performed by our payments team and may take 1–2 business days.
+              Images are checked against cheque format criteria — landscape orientation, valid file type, and readable size. Final authentication is performed by our payments team and may take 1–2 business days.
             </p>
           </div>
 
@@ -293,7 +268,6 @@
 <div class="auth-overlay" id="auth-overlay">
   <div class="auth-box">
 
-    <!-- Spinner phase -->
     <div id="auth-spinner-phase">
       <h3>Authenticating cheque</h3>
       <div class="auth-spinner"></div>
@@ -307,13 +281,10 @@
       </div>
     </div>
 
-    <!-- Result phase (always failure for demo) -->
-    <div class="auth-result failed" id="auth-result-phase">
+    <div class="auth-result" id="auth-result-phase">
       <div class="auth-result-icon">✕</div>
       <div class="auth-result-title">Authentication declined</div>
-      <div class="auth-result-msg" id="auth-result-msg">
-        We were unable to verify this cheque with the issuing bank. The deposit has been logged as declined. Please visit a branch or contact support if you believe this is an error.
-      </div>
+      <div class="auth-result-msg" id="auth-result-msg"></div>
       <button class="btn btn-ghost" id="auth-dismiss-btn" style="width:100%;">Close</button>
     </div>
 
@@ -343,10 +314,7 @@
   let uid          = null;
   let profileData  = {};
   let depositsData = { items: [] };
-
-  let frontFile     = null, backFile     = null;
   let frontVerified = false, backVerified = false;
-  let frontChecking = false, backChecking = false;
 
   // ── Helpers ───────────────────────────────────────────────────
   function money(n) {
@@ -356,73 +324,89 @@
   }
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  // Show/hide feedback banners under each upload box
   function showFeedback(side, state, msg) {
-    // state: 'checking' | 'accepted' | 'declined' | 'none'
-    ['checking','accepted','declined'].forEach(s => {
-      const el = document.getElementById(`${side}-${s}`);
-      if (el) el.classList.remove('show');
+    ['accepted','declined'].forEach(s => {
+      document.getElementById(`${side}-${s}`).classList.remove('show');
     });
     if (state === 'none') return;
     const el = document.getElementById(`${side}-${state}`);
-    if (!el) return;
-    if (msg) {
-      const msgEl = document.getElementById(`${side}-${state}-msg`);
-      if (msgEl) msgEl.textContent = msg;
-    }
+    document.getElementById(`${side}-${state}-msg`).textContent = msg;
     el.classList.add('show');
   }
 
-  // Update the eligibility checklist
+  function setCheck(key, state) {
+    const mark = document.getElementById(`chk-${key}-mark`);
+    mark.className = `check-mark ${state}`;
+    mark.textContent = state === 'pass' ? '✓' : state === 'fail' ? '✕' : '○';
+  }
+
   function updateEligibility() {
-    setCheck('front',  frontVerified  ? 'pass' : (frontFile  ? 'fail' : 'pending'));
-    setCheck('back',   backVerified   ? 'pass' : (backFile   ? 'fail' : 'pending'));
+    setCheck('front',  frontVerified ? 'pass' : 'pending');
+    setCheck('back',   backVerified  ? 'pass' : 'pending');
     const amount = parseFloat(document.getElementById('deposit-amount').value);
     setCheck('amount', amount > 0 ? 'pass' : 'pending');
     const ready = frontVerified && backVerified && amount > 0;
     setCheck('ready', ready ? 'pass' : 'pending');
   }
-  function setCheck(key, state) {
-    const mark = document.getElementById(`chk-${key}-mark`);
-    if (!mark) return;
-    mark.className = `check-mark ${state}`;
-    mark.textContent = state === 'pass' ? '✓' : state === 'fail' ? '✕' : '○';
-  }
   document.getElementById('deposit-amount').addEventListener('input', updateEligibility);
 
-  // ── Image → base64 ────────────────────────────────────────────
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = e => resolve(e.target.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+  // ── Local cheque verification ─────────────────────────────────
+  // Checks the image meets the physical format of a cheque:
+  // - Must be an image file
+  // - File size between 20 KB and 15 MB (too small = screenshot/icon, too large = unrelated)
+  // - Landscape orientation (cheques are always wider than tall)
+  // - Aspect ratio between 1.8:1 and 4.5:1 (covers standard cheque sizes worldwide)
+  function verifyLocally(file) {
+    return new Promise((resolve) => {
+      // Check 1: must be an image
+      if (!file.type.startsWith('image/')) {
+        return resolve({ ok: false, reason: 'File must be an image (JPG or PNG). Please upload a photo of your cheque.' });
+      }
+
+      // Check 2: file size
+      const MIN_BYTES = 20 * 1024;        // 20 KB
+      const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
+      if (file.size < MIN_BYTES) {
+        return resolve({ ok: false, reason: 'Image is too small — it may be a thumbnail or icon rather than a photo of a cheque. Please upload a full-size image.' });
+      }
+      if (file.size > MAX_BYTES) {
+        return resolve({ ok: false, reason: 'Image exceeds the 15 MB limit. Please compress it or use a different photo.' });
+      }
+
+      // Check 3 & 4: dimensions and aspect ratio
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+
+        if (h >= w) {
+          return resolve({ ok: false, reason: 'Image appears to be in portrait orientation. Cheques are landscape (wider than tall). Please rotate or re-upload.' });
+        }
+
+        const ratio = w / h;
+        if (ratio < 1.8) {
+          return resolve({ ok: false, reason: `Image proportions (${ratio.toFixed(2)}:1) are too square for a cheque. Standard cheques are roughly 2.5:1 to 3.5:1 wide-to-tall.` });
+        }
+        if (ratio > 4.5) {
+          return resolve({ ok: false, reason: `Image proportions (${ratio.toFixed(2)}:1) are too wide to be a cheque. Please upload a straight-on photo of the cheque.` });
+        }
+
+        resolve({ ok: true, reason: `Image accepted — landscape format confirmed (${w}×${h}px, ${ratio.toFixed(2)}:1 ratio).` });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve({ ok: false, reason: 'Could not read this image. Please try a different file.' });
+      };
+      img.src = url;
     });
   }
 
-  // ── Call the Vercel verify-cheque function ────────────────────
-  async function verifyChequeImage(file) {
-    const base64 = await fileToBase64(file);
-    const mediaType = file.type || 'image/jpeg';
-
-    const res = await fetch('/api/verify-cheque', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: base64, mediaType })
-    });
-
-    if (!res.ok) {
-      return { isCheck: false, reason: 'Image analysis service unavailable. Please try again.' };
-    }
-    return await res.json();
-  }
-
-  // ── Set up one upload box ─────────────────────────────────────
+  // ── Upload box setup ──────────────────────────────────────────
   function setupUploadBox(side) {
-    const boxId   = `${side}-box`;
-    const inputId = `${side}-input`;
-    const box     = document.getElementById(boxId);
-    const input   = document.getElementById(inputId);
+    const box   = document.getElementById(`${side}-box`);
+    const input = document.getElementById(`${side}-input`);
 
     box.addEventListener('click', (e) => {
       if (e.target.closest('.change-btn')) return;
@@ -433,9 +417,11 @@
       const file = input.files[0];
       if (!file) return;
 
-      // Clear previous state for this side
-      if (side === 'front') { frontFile = file; frontVerified = false; frontChecking = true; }
-      else                  { backFile  = file; backVerified  = false; backChecking  = true; }
+      // Reset this side
+      if (side === 'front') frontVerified = false;
+      else                  backVerified  = false;
+      showFeedback(side, 'none', '');
+      updateEligibility();
 
       // Show preview
       const reader = new FileReader();
@@ -444,41 +430,26 @@
         box.innerHTML = `
           <img src="${e.target.result}" alt="${side} of cheque">
           <button class="change-btn" type="button">Change</button>
-          <input type="file" id="${inputId}" accept="image/*" style="display:none;">
+          <input type="file" id="${side}-input" accept="image/*" style="display:none;">
         `;
-        // Re-attach the change listener on the new input
-        document.getElementById(inputId).addEventListener('change', async () => {
-          setupUploadBox(side); // re-run on the replaced element
-        });
-        // Re-attach the change button
         box.querySelector('.change-btn').addEventListener('click', () => {
-          document.getElementById(inputId).click();
+          document.getElementById(`${side}-input`).click();
+        });
+        document.getElementById(`${side}-input`).addEventListener('change', async () => {
+          setupUploadBox(side);
         });
       };
       reader.readAsDataURL(file);
 
-      // Show "checking" banner immediately
-      showFeedback(side, 'checking');
-      updateEligibility();
+      // Run local verification
+      const result = await verifyLocally(file);
 
-      // Send to API for verification
-      try {
-        const result = await verifyChequeImage(file);
-        if (side === 'front') frontChecking = false;
-        else                  backChecking  = false;
-
-        if (result.isCheck) {
-          if (side === 'front') frontVerified = true;
-          else                  backVerified  = true;
-          showFeedback(side, 'accepted', result.reason);
-        } else {
-          showFeedback(side, 'declined', result.reason);
-        }
-      } catch (err) {
-        console.error('Verify error:', err);
-        if (side === 'front') frontChecking = false;
-        else                  backChecking  = false;
-        showFeedback(side, 'declined', 'Could not analyse this image. Please try a clearer photo.');
+      if (result.ok) {
+        if (side === 'front') frontVerified = true;
+        else                  backVerified  = true;
+        showFeedback(side, 'accepted', result.reason);
+      } else {
+        showFeedback(side, 'declined', result.reason);
       }
 
       updateEligibility();
@@ -488,7 +459,7 @@
   setupUploadBox('front');
   setupUploadBox('back');
 
-  // ── Authentication overlay flow (always fails — demo) ─────────
+  // ── Authentication animation (always fails — demo) ────────────
   const AUTH_STEPS = [
     'Uploading cheque images…',
     'Reading MICR encoding…',
@@ -496,11 +467,10 @@
     'Contacting payment network…',
     'Finalising authentication…'
   ];
-  // Possible decline messages — pick randomly each time for realism
   const DECLINE_MESSAGES = [
-    'We were unable to verify this cheque with the issuing bank. The deposit has been logged as declined. Please visit a branch or contact support if you believe this is an error.',
+    'We were unable to verify this cheque with the issuing bank. The deposit has been recorded as declined. Please visit a branch or contact support if you believe this is an error.',
     'Authentication could not be completed — the issuing bank returned a verification failure. Your deposit has been recorded as declined.',
-    'Our fraud detection system flagged this cheque for manual review. The deposit is declined at this time. Please contact support with your cheque reference number.'
+    'Our payments system flagged this cheque for manual review. The deposit is declined at this time. Please contact support with your reference number.'
   ];
 
   async function runAuthAnimation() {
@@ -508,19 +478,14 @@
     const spinnerPhase = document.getElementById('auth-spinner-phase');
     const resultPhase  = document.getElementById('auth-result-phase');
     const stepLabel    = document.getElementById('auth-step-label');
-    const resultMsg    = document.getElementById('auth-result-msg');
 
-    // Reset
     spinnerPhase.style.display = 'block';
     resultPhase.classList.remove('show');
     overlay.classList.add('show');
 
-    // Walk through steps
     for (let i = 0; i < AUTH_STEPS.length; i++) {
-      // Activate current dot, mark previous as done
       for (let d = 0; d < AUTH_STEPS.length; d++) {
         const dot = document.getElementById(`dot-${d}`);
-        if (!dot) continue;
         dot.classList.remove('active','done');
         if (d < i)  dot.classList.add('done');
         if (d === i) dot.classList.add('active');
@@ -529,16 +494,15 @@
       await sleep(1100 + Math.random() * 400);
     }
 
-    // All dots done
     for (let d = 0; d < AUTH_STEPS.length; d++) {
       const dot = document.getElementById(`dot-${d}`);
-      if (dot) { dot.classList.remove('active'); dot.classList.add('done'); }
+      dot.classList.remove('active'); dot.classList.add('done');
     }
+    await sleep(500);
 
-    // Brief pause then show result
-    await sleep(600);
     spinnerPhase.style.display = 'none';
-    resultMsg.textContent = DECLINE_MESSAGES[Math.floor(Math.random() * DECLINE_MESSAGES.length)];
+    document.getElementById('auth-result-msg').textContent =
+      DECLINE_MESSAGES[Math.floor(Math.random() * DECLINE_MESSAGES.length)];
     resultPhase.classList.add('show');
   }
 
@@ -547,24 +511,18 @@
     renderHistory();
   });
 
-  // ── Submit deposit ────────────────────────────────────────────
+  // ── Submit ────────────────────────────────────────────────────
   document.getElementById('submit-deposit').addEventListener('click', async () => {
     const errEl     = document.getElementById('deposit-error');
-    const saveErrEl = document.getElementById('deposit-save-error');
+    const saveErrEl = document.getElementById('deposit-save-err');
     errEl.classList.remove('show');
     saveErrEl.style.display = 'none';
 
     const amount  = parseFloat(document.getElementById('deposit-amount').value);
     const account = document.getElementById('deposit-account').value;
 
-    // Validation
-    if (!frontFile || !backFile) {
-      errEl.textContent = 'Please upload both the front and back images of your cheque.';
-      errEl.classList.add('show');
-      return;
-    }
     if (!frontVerified || !backVerified) {
-      errEl.textContent = 'Both cheque images must be verified before submitting. Please upload valid cheque photos.';
+      errEl.textContent = 'Both cheque images must pass the format check before submitting.';
       errEl.classList.add('show');
       return;
     }
@@ -578,61 +536,60 @@
     btn.disabled = true;
     btn.textContent = 'Submitting…';
 
-    // Save record to Firestore as "Pending authentication" first
+    // Save as "Pending authentication" first
     const newDeposit = {
-      id:      'DEP-' + Math.random().toString(36).slice(2,10).toUpperCase(),
-      account,
-      amount,
-      status:  'Pending authentication',
-      date:    new Date().toISOString()
+      id:     'DEP-' + Math.random().toString(36).slice(2,10).toUpperCase(),
+      account, amount,
+      status: 'Pending authentication',
+      date:   new Date().toISOString()
     };
     depositsData.items.push(newDeposit);
 
     try {
       await setDoc(doc(db, 'chequeDeposits', uid), depositsData);
     } catch (e) {
-      console.error('Could not save deposit record:', e);
-      depositsData.items.pop(); // roll back
+      console.error('Could not save deposit:', e);
+      depositsData.items.pop();
       saveErrEl.style.display = 'block';
       btn.disabled = false;
       btn.textContent = 'Submit for verification';
       return;
     }
 
-    // Run the authentication animation (always ends in failure)
+    // Run animation (always fails)
     await runAuthAnimation();
 
-    // Update the record status to "Declined" in Firestore
+    // Update status to Declined
     newDeposit.status = 'Declined';
     try {
       await setDoc(doc(db, 'chequeDeposits', uid), depositsData);
     } catch (e) {
-      // Non-critical — record is already saved as Pending, log and continue
-      console.error('Could not update deposit status to Declined:', e);
+      console.error('Could not update deposit status:', e);
     }
 
     // Reset form
     btn.disabled = false;
     btn.textContent = 'Submit for verification';
     document.getElementById('deposit-amount').value = '';
-    frontFile = null; backFile = null;
     frontVerified = false; backVerified = false;
+
     ['front','back'].forEach(side => {
       const box = document.getElementById(`${side}-box`);
       box.classList.remove('has-preview');
       box.innerHTML = `
         <span class="ic">⎘</span>
         <p>Click to upload the ${side} of the cheque</p>
-        <span class="hint">${side === 'front' ? 'JPG, PNG or HEIC — max 15 MB' : 'Must show your endorsement signature'}</span>
+        <span class="hint">${side === 'front' ? 'JPG or PNG · landscape · max 15 MB' : 'Must show your endorsement signature'}</span>
         <input type="file" id="${side}-input" accept="image/*" style="display:none;">
       `;
       setupUploadBox(side);
-      showFeedback(side, 'none');
+      showFeedback(side, 'none', '');
     });
+
     updateEligibility();
   });
 
-  // ── Render deposit history ────────────────────────────────────
+  // ── Render history ────────────────────────────────────────────
   function renderHistory() {
     const list  = document.getElementById('deposit-history');
     const items = [...depositsData.items].sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -643,31 +600,31 @@
     }
 
     list.innerHTML = items.map(d => {
-      const statusClass = d.status.toLowerCase().includes('declin') ? 'failed'
-                        : d.status.toLowerCase().includes('pend')   ? 'pending'
-                        : 'approved';
+      const cls = d.status.toLowerCase().includes('declin') ? 'failed'
+                : d.status.toLowerCase().includes('pend')   ? 'pending'
+                : 'approved';
       return `
         <div class="txn-row">
           <div class="who">
-            <span class="desc">Cheque deposit — ${d.account === 'checking' ? 'Checking' : 'Savings'}</span>
-            <span class="meta">${new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · <span class="dep-status ${statusClass}">${d.status}</span></span>
+            <span class="desc">Cheque — ${d.account === 'checking' ? 'Checking' : 'Savings'} · ${d.id}</span>
+            <span class="meta">${new Date(d.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · <span class="dep-status ${cls}">${d.status}</span></span>
           </div>
-          <div class="txn-amt ${statusClass === 'approved' ? 'pos' : 'neg'}">
-            ${statusClass === 'approved' ? '+' : '−'} ${money(d.amount)}
+          <div class="txn-amt ${cls === 'approved' ? 'pos' : 'neg'}">
+            ${cls === 'approved' ? '+' : '−'} ${money(d.amount)}
           </div>
         </div>`;
     }).join('');
   }
 
   // ── Scroll reveal ─────────────────────────────────────────────
-  document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 80}ms`; });
+  document.querySelectorAll('.reveal').forEach((el,i) => { el.style.transitionDelay = `${i*80}ms`; });
   const ro = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-visible'); ro.unobserve(e.target); } });
-  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('is-visible'); ro.unobserve(e.target); } });
+  }, { threshold:0.1, rootMargin:'0px 0px -30px 0px' });
   document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
   setTimeout(() => { document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible')); }, 2000);
 
-  // ── Auth ──────────────────────────────────────────────────────
+  // ── Auth guard ────────────────────────────────────────────────
   onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = 'login.html'; return; }
     uid = user.uid;
