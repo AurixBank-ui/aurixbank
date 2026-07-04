@@ -25,9 +25,9 @@
       <a href="transfers.html" class="active"><span class="ic">⇄</span>Transfers</a>
       <a href="billpayments.html"><span class="ic">▦</span>Bill Payments</a>
       <a href="cards.html"><span class="ic">▭</span>Cards</a>
-      <a href="loans.html"><span class="ic">⎘</span>Cheque Deposit</a>
-      <a href="#"><span class="ic">%</span>Loans</a>
-      <a href="#"><span class="ic">⚑</span>Notifications</a>
+      <a href="chequedeposit.html"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="loans.html"><span class="ic">%</span>Loans</a>
+      <a href="notifications.html"><span class="ic">⚑</span>Notifications</a>
       <a href="#"><span class="ic">◎</span>Profile</a>
     </nav>
     <div class="sidebar-footer">
@@ -556,6 +556,17 @@
     await signOut(auth);
     window.location.href = 'login.html';
   });
+
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { initNotificationBell } from './notifications.js';   // ← add
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+    initNotificationBell(db, user.uid);   // ← add
+
+    document.getElementById('checking-number').textContent = acctNumberFrom(user.uid, 'checking');
+});
 </script>
 
 

@@ -41,9 +41,9 @@
       <a href="transfers.html"><span class="ic">⇄</span>Transfers</a>
       <a href="billpayments.html"><span class="ic">▦</span>Bill Payments</a>
       <a href="cards.html"><span class="ic">▭</span>Cards</a>
-      <a href="loans.html"><span class="ic">⎘</span>Cheque Deposit</a>
-      <a href="#"><span class="ic">%</span>Loans</a>
-      <a href="#"><span class="ic">⚑</span>Notifications</a>
+      <a href="chequedeposit.html"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="loans.html"><span class="ic">%</span>Loans</a>
+      <a href="notifications.html"><span class="ic">⚑</span>Notifications</a>
       <a href="#"><span class="ic">◎</span>Profile</a>
     </nav>
     <div class="sidebar-footer">
@@ -117,6 +117,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { initNotificationBell } from './notifications.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
@@ -252,6 +253,7 @@
       window.location.href = 'login.html';
       return;
     }
+    initNotificationBell(db, user.uid);
 
     document.getElementById('checking-number').textContent = acctNumberFrom(user.uid, 'checking');
     document.getElementById('savings-number').textContent = acctNumberFrom(user.uid, 'savings');

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notifications — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="appshell">
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <aside class="sidebar">
+    <a href="dashboard.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <nav>
+      <a href="dashboard.html"><span class="ic">◆</span>Dashboard</a>
+      <a href="accounts.html"><span class="ic">▤</span>Accounts</a>
+      <a href="transfers.html"><span class="ic">⇄</span>Transfers</a>
+      <a href="billpayments.html"><span class="ic">▦</span>Bill Payments</a>
+      <a href="cards.html"><span class="ic">▭</span>Cards</a>
+      <a href="chequedeposit.html"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="loans.html"><span class="ic">%</span>Loans</a>
+      <a href="notifications.html" class="active"><span class="ic">⚑</span>Notifications</a>
+      <a href="#"><span class="ic">◎</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" id="logout-link">Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open menu">☰</button>
+      <div class="topbar-search">
+        <input type="text" placeholder="Search transactions, accounts...">
+      </div>
+      <div class="topbar-right">
+        <span class="bell">⚑<span class="dotbadge"></span></span>
+        <div class="avatar-btn" id="topbar-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content-pad">
+
+      <div class="welcome-row">
+        <div>
+          <h1>Notifications</h1>
+          <div class="lastlogin">Every transaction, deposit, loan update, and sign-in on your account.</div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="tab-row">
+          <div class="tab-btn active" data-filter="all">All</div>
+          <div class="tab-btn" data-filter="transactions">Transactions</div>
+          <div class="tab-btn" data-filter="logins">Sign-ins</div>
+        </div>
+        <div id="notif-full-list">
+          <div class="empty-state"><div class="ic">⚑</div><p>Loading notifications…</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getAllNotifications, renderNotificationList, initNotificationBell } from './notifications.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  function initials(first, last) {
+    return `${(first || 'A')[0]}${(last || '')[0] || ''}`.toUpperCase();
+  }
+
+  // Scroll reveal
+  document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 70}ms`; });
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); revealObserver.unobserve(entry.target); }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  setTimeout(() => {
+    document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible'));
+  }, 2000);
+
+  let allNotifications = [];
+  let currentFilter = 'all';
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      renderNotificationList(allNotifications, document.getElementById('notif-full-list'), currentFilter);
+    });
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+
+    try {
+      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      const profile = userSnap.exists() ? userSnap.data() : {};
+      const topbarAvatar = document.getElementById('topbar-avatar');
+      if (profile.profilePictureURL) {
+        topbarAvatar.innerHTML = `<img src="${profile.profilePictureURL}" alt="">`;
+      } else {
+        topbarAvatar.textContent = initials(profile.firstName, profile.lastName);
+      }
+    } catch (e) {
+      console.error('Could not load profile:', e);
+    }
+
+    try {
+      allNotifications = await getAllNotifications(db, user.uid);
+      renderNotificationList(allNotifications, document.getElementById('notif-full-list'), currentFilter);
+    } catch (e) {
+      console.error('Could not load notifications:', e);
+      document.getElementById('notif-full-list').innerHTML =
+        `<div class="empty-state"><div class="ic">!</div><p>Could not load notifications. Check the browser console (F12) for details.</p></div>`;
+    }
+
+    // Bell dropdown (also present on this page's topbar)
+    initNotificationBell(db, user.uid);
+  });
+
+  document.getElementById('logout-link').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = 'login.html';
+  });
+</script>
+
+<script>
+  (function() {
+    var menuToggle = document.getElementById('menu-toggle');
+    var appshell = document.querySelector('.appshell');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (menuToggle && appshell) {
+      menuToggle.addEventListener('click', function() {
+        appshell.classList.toggle('sidebar-open');
+      });
+    }
+    if (backdrop && appshell) {
+      backdrop.addEventListener('click', function() {
+        appshell.classList.remove('sidebar-open');
+      });
+    }
+  })();
+</script>
+</body>
+</html>
