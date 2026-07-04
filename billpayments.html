@@ -20,6 +20,55 @@
   .biller-tile.active{ border-color:var(--brass); background:var(--panel-2); }
   .biller-tile .ic{ font-size:20px; color:var(--brass); margin-bottom:8px; }
   .biller-tile .lbl{ font-size:12px; color:var(--paper); font-weight:500; }
+
+  /* ---------- Transfer / payment processing modal ---------- */
+  .txn-modal{
+    position:fixed; inset:0; z-index:999; display:none; align-items:center; justify-content:center;
+    background:rgba(30,42,61,0.55); backdrop-filter:blur(4px); padding:20px;
+  }
+  .txn-modal.show{ display:flex; }
+  .txn-modal-inner{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:40px 36px; text-align:center; width:340px; max-width:100%;
+  }
+  .txn-spinner{
+    width:44px; height:44px; margin:0 auto 20px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--brass);
+    animation:txn-spin 0.9s linear infinite;
+  }
+  @keyframes txn-spin{ to{ transform:rotate(360deg); } }
+  .txn-modal-text{ font-size:14.5px; color:var(--slate); }
+  .txn-modal-subtext{ font-size:12.5px; color:var(--slate-dim); margin-top:6px; }
+
+  .txn-anim{ width:260px; height:130px; display:block; margin:0 auto; overflow:visible; }
+  .figure-a, .figure-b{ transform-box: fill-box; }
+  .clasp{ opacity:0; transform-box: fill-box; transform-origin:50% 50%; }
+  .txn-result-text{ font-size:15px; font-weight:600; margin-top:6px; }
+  .txn-result-text.ok{ color:var(--good); }
+  .txn-result-text.no{ color:#B3261E; }
+  .txn-result-sub{ font-size:12.5px; color:var(--slate-dim); margin-top:4px; }
+
+  @keyframes walk-a-in{ from{ transform:translateX(0); } to{ transform:translateX(65px); } }
+  @keyframes walk-b-in{ from{ transform:translateX(0); } to{ transform:translateX(-65px); } }
+  @keyframes gentle-bounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
+  @keyframes clasp-pop{ 0%{ opacity:0; transform:scale(0.4); } 65%{ opacity:1; transform:scale(1.2); } 100%{ opacity:1; transform:scale(1); } }
+
+  .txn-stage.success .figure-a{ animation: walk-a-in 0.9s ease-out forwards; }
+  .txn-stage.success .figure-b{ animation: walk-b-in 0.9s ease-out forwards; }
+  .txn-stage.success .figure-a .body-group,
+  .txn-stage.success .figure-b .body-group{ animation: gentle-bounce 0.5s ease-in-out 0.9s 2; }
+  .txn-stage.success .clasp{ animation: clasp-pop 0.5s ease-out 0.95s forwards; }
+
+  @keyframes turn-and-leave{
+    0%{ transform:translateX(0) scaleX(1); }
+    18%{ transform:translateX(0) scaleX(-1); }
+    100%{ transform:translateX(150px) scaleX(-1); }
+  }
+  @keyframes fade-out-walk{ 0%,60%{ opacity:1; } 100%{ opacity:0; } }
+  @keyframes shrug{ 0%,100%{ transform:translateY(0); } 40%{ transform:translateY(-3px); } }
+
+  .txn-stage.decline .figure-b{ animation: turn-and-leave 1.6s ease-in forwards, fade-out-walk 1.6s ease-in forwards; }
+  .txn-stage.decline .figure-a .body-group{ animation: shrug 0.7s ease-in-out 2; }
 </style>
 </head>
 <body>
@@ -40,7 +89,7 @@
       <a href="chequedeposit.html"><span class="ic">⎘</span>Cheque Deposit</a>
       <a href="loans.html"><span class="ic">%</span>Loans</a>
       <a href="notifications.html"><span class="ic">⚑</span>Notifications</a>
-      <a href="#"><span class="ic">◎</span>Profile</a>
+      <a href="profile.html"><span class="ic">◎</span>Profile</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" id="logout-link">Log out</a>
@@ -138,6 +187,56 @@
   </div>
 </div>
 
+<!-- ---------- Payment processing / result modal ---------- -->
+<div class="txn-modal" id="txn-modal">
+  <div class="txn-modal-inner">
+
+    <div id="txn-stage-loading">
+      <div class="txn-spinner"></div>
+      <div class="txn-modal-text" id="txn-loading-text">Processing your payment…</div>
+      <div class="txn-modal-subtext">This usually takes a few seconds.</div>
+    </div>
+
+    <div id="txn-stage-result" class="txn-stage" style="display:none;">
+      <svg class="txn-anim" viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg">
+        <line x1="10" y1="112" x2="250" y2="112" stroke="var(--line)" stroke-width="2"/>
+
+        <!-- Figure A: starts on the left -->
+        <g class="figure-a" style="transform:translateX(0)">
+          <g class="body-group" transform="translate(70,10)">
+            <circle cx="0" cy="20" r="12" fill="var(--brass)"/>
+            <line x1="0" y1="32" x2="0" y2="68" stroke="var(--brass)" stroke-width="6" stroke-linecap="round"/>
+            <line x1="0" y1="42" x2="18" y2="60" stroke="var(--brass)" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="42" x2="-16" y2="60" stroke="var(--brass)" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="68" x2="-9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+            <line x1="0" y1="68" x2="9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- Figure B: starts on the right -->
+        <g class="figure-b" style="transform:translateX(0)">
+          <g class="body-group" transform="translate(190,10)">
+            <circle cx="0" cy="20" r="12" fill="var(--slate)"/>
+            <line x1="0" y1="32" x2="0" y2="68" stroke="var(--slate)" stroke-width="6" stroke-linecap="round"/>
+            <line x1="0" y1="42" x2="-18" y2="60" stroke="var(--slate)" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="42" x2="16" y2="60" stroke="var(--slate)" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="68" x2="-9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+            <line x1="0" y1="68" x2="9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- Handshake clasp mark, appears only on success -->
+        <circle class="clasp" cx="130" cy="52" r="7" fill="var(--good)"/>
+        <path class="clasp" d="M126,52 L129,55 L135,48" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+
+      <div class="txn-result-text" id="txn-result-text"></div>
+      <div class="txn-result-sub" id="txn-result-sub"></div>
+    </div>
+
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -222,6 +321,7 @@
   });
 
   let currentUser = null;
+  let currentProfile = {};
   let accountsCache = { checkingBalance: 0, savingsBalance: 0 };
   let allTxns = [];
 
@@ -252,6 +352,76 @@
     }).join('');
   }
 
+  // ---------- Payment processing modal helpers ----------
+  // Random delay between 5 and 10 seconds, so every payment feels like it's
+  // actually being worked on rather than resolving instantly.
+  function randomProcessingDelay() {
+    return 5000 + Math.random() * 5000;
+  }
+
+  function openLoadingModal(text) {
+    document.getElementById('txn-loading-text').textContent = text || 'Processing your payment…';
+    document.getElementById('txn-stage-loading').style.display = 'block';
+    const resultStage = document.getElementById('txn-stage-result');
+    resultStage.style.display = 'none';
+    resultStage.classList.remove('success', 'decline');
+    document.getElementById('txn-modal').classList.add('show');
+  }
+
+  function playResultAnimation(isSuccess, headline, subtext) {
+    document.getElementById('txn-stage-loading').style.display = 'none';
+    const resultStage = document.getElementById('txn-stage-result');
+    resultStage.style.display = 'block';
+    resultStage.classList.remove('success', 'decline');
+    void resultStage.offsetWidth; // restart CSS animations if the modal runs twice in a row
+    resultStage.classList.add(isSuccess ? 'success' : 'decline');
+
+    const textEl = document.getElementById('txn-result-text');
+    textEl.textContent = headline;
+    textEl.className = 'txn-result-text ' + (isSuccess ? 'ok' : 'no');
+    document.getElementById('txn-result-sub').textContent = subtext || '';
+  }
+
+  function closeTxnModal() {
+    document.getElementById('txn-modal').classList.remove('show');
+  }
+
+  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Runs the loading screen, then either the handshake (success) or the
+  // walk-away (decline) animation, then resolves with what happened.
+  //
+  // Decline currently only fires if `currentProfile.accountFlagged` is true.
+  // There's no admin panel yet to set that field, so it's always false today
+  // and every payment here goes through — this is ready to activate the
+  // moment account flagging is built, with zero changes needed on this page.
+  async function runPaymentFlow({ loadingText, declineHeadline, declineSub, doPayment }) {
+    openLoadingModal(loadingText);
+    await wait(randomProcessingDelay());
+
+    const isFlagged = !!(currentProfile && currentProfile.accountFlagged);
+
+    if (isFlagged) {
+      playResultAnimation(false, declineHeadline || 'Payment declined', declineSub || 'This account currently has restrictions.');
+      await wait(2400);
+      closeTxnModal();
+      return { allowed: false };
+    }
+
+    try {
+      await doPayment();
+    } catch (e) {
+      console.error(e);
+      closeTxnModal();
+      return { allowed: true, ok: false };
+    }
+
+    playResultAnimation(true, 'Payment complete', 'Your bill has been paid.');
+    await wait(2200);
+    closeTxnModal();
+    return { allowed: true, ok: true };
+  }
+
   document.getElementById('pay-submit').addEventListener('click', async () => {
     const provider = document.getElementById('provider-select').value;
     const from = document.getElementById('pay-from').value;
@@ -266,41 +436,54 @@
     const fromField = from === 'checking' ? 'checkingBalance' : 'savingsBalance';
     if ((accountsCache[fromField] || 0) < amount) { err.textContent = 'Insufficient funds in the selected account.'; err.classList.add('show'); return; }
 
-    try {
-      await updateDoc(doc(db, 'accounts', currentUser.uid), { [fromField]: increment(-amount) });
+    const ref = refNumber();
+    const desc = `${currentCategory} — ${provider}`;
 
-      const now = new Date().toISOString();
-      const ref = refNumber();
-      const desc = `${currentCategory} — ${provider}`;
-      const newTxn = { date: now, description: desc, amount: -amount, category: 'Bill Payment' };
-      await updateDoc(doc(db, 'transactions', currentUser.uid), { items: arrayUnion(newTxn) });
+    const result = await runPaymentFlow({
+      loadingText: 'Processing your payment…',
+      declineSub: 'Contact support to resolve this before trying again.',
+      doPayment: async () => {
+        await updateDoc(doc(db, 'accounts', currentUser.uid), { [fromField]: increment(-amount) });
 
-      accountsCache[fromField] = (accountsCache[fromField] || 0) - amount;
-      allTxns.push(newTxn);
-      refreshBalanceDisplay();
-      renderBillsList();
+        const now = new Date().toISOString();
+        const newTxn = { date: now, description: desc, amount: -amount, category: 'Bill Payment' };
+        await updateDoc(doc(db, 'transactions', currentUser.uid), { items: arrayUnion(newTxn) });
 
-      ok.textContent = 'Payment sent.'; ok.classList.add('show');
-      document.getElementById('receipt-body').innerHTML = `
-        <div class="receipt-head">
-          <div class="status">Completed</div>
-          <div class="amt">$${money(amount).whole}.${money(amount).cents}</div>
-        </div>
-        <div class="receipt-row"><span>Bill</span><span>${desc}</span></div>
-        <div class="receipt-row"><span>Account / meter</span><span>${acctNum}</span></div>
-        <div class="receipt-row"><span>Paid from</span><span>${from === 'checking' ? 'Checking' : 'Savings'}</span></div>
-        <div class="receipt-row"><span>Reference</span><span>${ref}</span></div>
-        <div class="receipt-row"><span>Date</span><span>${new Date().toLocaleString('en-US')}</span></div>
-      `;
-      document.getElementById('receipt-wrap').style.display = 'block';
-      document.getElementById('receipt-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        accountsCache[fromField] = (accountsCache[fromField] || 0) - amount;
+        allTxns.push(newTxn);
+        refreshBalanceDisplay();
+        renderBillsList();
+      }
+    });
 
-      document.getElementById('account-number').value = '';
-      document.getElementById('pay-amount').value = '';
-    } catch (e) {
-      console.error(e);
-      err.textContent = 'Something went wrong. Please try again.'; err.classList.add('show');
+    if (!result.allowed) {
+      err.textContent = 'This account currently has restrictions and can\'t make payments.';
+      err.classList.add('show');
+      return;
     }
+    if (!result.ok) {
+      err.textContent = 'Something went wrong. Please try again.';
+      err.classList.add('show');
+      return;
+    }
+
+    ok.textContent = 'Payment sent.'; ok.classList.add('show');
+    document.getElementById('receipt-body').innerHTML = `
+      <div class="receipt-head">
+        <div class="status">Completed</div>
+        <div class="amt">$${money(amount).whole}.${money(amount).cents}</div>
+      </div>
+      <div class="receipt-row"><span>Bill</span><span>${desc}</span></div>
+      <div class="receipt-row"><span>Account / meter</span><span>${acctNum}</span></div>
+      <div class="receipt-row"><span>Paid from</span><span>${from === 'checking' ? 'Checking' : 'Savings'}</span></div>
+      <div class="receipt-row"><span>Reference</span><span>${ref}</span></div>
+      <div class="receipt-row"><span>Date</span><span>${new Date().toLocaleString('en-US')}</span></div>
+    `;
+    document.getElementById('receipt-wrap').style.display = 'block';
+    document.getElementById('receipt-wrap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    document.getElementById('account-number').value = '';
+    document.getElementById('pay-amount').value = '';
   });
 
   document.getElementById('close-receipt').addEventListener('click', () => {
@@ -323,6 +506,7 @@
         getDoc(doc(db, 'transactions', user.uid))
       ]);
       const profile = userSnap.exists() ? userSnap.data() : {};
+      currentProfile = profile; // holds accountFlagged once the admin panel sets it
       accountsCache = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
       allTxns = txnSnap.exists() ? (txnSnap.data().items || []) : [];
 

@@ -93,9 +93,23 @@
 
   .auth-result{ display:none; }
   .auth-result.show{ display:block; }
-  .auth-result-icon{ font-size:36px; margin-bottom:12px; }
   .auth-result-title{ font-size:17px; font-weight:700; margin-bottom:6px; color:#B3261E; }
   .auth-result-msg{ font-size:13.5px; color:var(--slate); margin-bottom:22px; }
+
+  /* ── Walk-away decline animation (matches Transfers / Bill Payments) ── */
+  .txn-anim{ width:220px; height:110px; display:block; margin:0 auto 16px; overflow:visible; }
+  .figure-a, .figure-b{ transform-box: fill-box; }
+
+  @keyframes turn-and-leave{
+    0%{ transform:translateX(0) scaleX(1); }
+    18%{ transform:translateX(0) scaleX(-1); }
+    100%{ transform:translateX(150px) scaleX(-1); }
+  }
+  @keyframes fade-out-walk{ 0%,60%{ opacity:1; } 100%{ opacity:0; } }
+  @keyframes shrug{ 0%,100%{ transform:translateY(0); } 40%{ transform:translateY(-3px); } }
+
+  .txn-stage.decline .figure-b{ animation: turn-and-leave 1.6s ease-in forwards, fade-out-walk 1.6s ease-in forwards; }
+  .txn-stage.decline .figure-a .body-group{ animation: shrug 0.7s ease-in-out 2; }
 
   /* ── History status badges ──────────────────────────────────── */
   .dep-status{
@@ -133,7 +147,7 @@
       <a href="chequedeposit.html" class="active"><span class="ic">⎘</span>Cheque Deposit</a>
       <a href="loans.html"><span class="ic">%</span>Loans</a>
       <a href="notifications.html"><span class="ic">⚑</span>Notifications</a>
-      <a href="#"><span class="ic">◎</span>Profile</a>
+      <a href="profile.html"><span class="ic">◎</span>Profile</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" id="logout-link">Log out</a>
@@ -283,7 +297,35 @@
     </div>
 
     <div class="auth-result" id="auth-result-phase">
-      <div class="auth-result-icon">✕</div>
+      <div class="txn-stage" id="cheque-anim-stage">
+        <svg class="txn-anim" viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg">
+          <line x1="10" y1="112" x2="250" y2="112" stroke="var(--line)" stroke-width="2"/>
+
+          <!-- Figure A: stays put, gives a small shrug -->
+          <g class="figure-a" style="transform:translateX(0)">
+            <g class="body-group" transform="translate(70,10)">
+              <circle cx="0" cy="20" r="12" fill="var(--brass)"/>
+              <line x1="0" y1="32" x2="0" y2="68" stroke="var(--brass)" stroke-width="6" stroke-linecap="round"/>
+              <line x1="0" y1="42" x2="18" y2="60" stroke="var(--brass)" stroke-width="5" stroke-linecap="round"/>
+              <line x1="0" y1="42" x2="-16" y2="60" stroke="var(--brass)" stroke-width="5" stroke-linecap="round"/>
+              <line x1="0" y1="68" x2="-9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+              <line x1="0" y1="68" x2="9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+            </g>
+          </g>
+
+          <!-- Figure B: turns and walks away, representing the decline -->
+          <g class="figure-b" style="transform:translateX(0)">
+            <g class="body-group" transform="translate(190,10)">
+              <circle cx="0" cy="20" r="12" fill="var(--slate)"/>
+              <line x1="0" y1="32" x2="0" y2="68" stroke="var(--slate)" stroke-width="6" stroke-linecap="round"/>
+              <line x1="0" y1="42" x2="-18" y2="60" stroke="var(--slate)" stroke-width="5" stroke-linecap="round"/>
+              <line x1="0" y1="42" x2="16" y2="60" stroke="var(--slate)" stroke-width="5" stroke-linecap="round"/>
+              <line x1="0" y1="68" x2="-9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+              <line x1="0" y1="68" x2="9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+            </g>
+          </g>
+        </svg>
+      </div>
       <div class="auth-result-title">Authentication declined</div>
       <div class="auth-result-msg" id="auth-result-msg"></div>
       <button class="btn btn-ghost" id="auth-dismiss-btn" style="width:100%;">Close</button>
@@ -480,6 +522,7 @@
     const spinnerPhase = document.getElementById('auth-spinner-phase');
     const resultPhase  = document.getElementById('auth-result-phase');
     const stepLabel    = document.getElementById('auth-step-label');
+    const animStage    = document.getElementById('cheque-anim-stage');
 
     spinnerPhase.style.display = 'block';
     resultPhase.classList.remove('show');
@@ -505,6 +548,13 @@
     spinnerPhase.style.display = 'none';
     document.getElementById('auth-result-msg').textContent =
       DECLINE_MESSAGES[Math.floor(Math.random() * DECLINE_MESSAGES.length)];
+
+    // Restart the walk-away animation each time this runs (in case the
+    // user submits more than one cheque deposit in the same session).
+    animStage.classList.remove('decline');
+    void animStage.offsetWidth;
+    animStage.classList.add('decline');
+
     resultPhase.classList.add('show');
   }
 

@@ -25,14 +25,17 @@
     position: relative;
   }
 
-  /* Fixed wave layer behind all content */
+  /* Fixed wave layer behind all content.
+     Diagonal wavy divider running from the TOP-RIGHT corner to the
+     BOTTOM-LEFT corner. Soft blue fills the bottom-right half, white
+     fills the top-left half. */
   body::before{
     content: '';
     position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Crect width='100' height='100' fill='%23ffffff'/%3E%3Cpath d='M52,0 C60,8 42,18 52,28 C62,38 42,48 52,58 C62,68 44,78 50,88 C54,94 46,97 48,100 L100,100 L100,0 Z' fill='%23E2EFFA'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Crect width='100' height='100' fill='%23ffffff'/%3E%3Cpath d='M100,0 C82,14 96,30 78,34 C60,38 70,54 52,50 C34,46 44,64 26,66 C8,68 18,86 0,100 L100,100 Z' fill='%23E2EFFA'/%3E%3C/svg%3E");
     background-size: 100% 100%;
     background-repeat: no-repeat;
   }
@@ -167,7 +170,7 @@
   .statuspanel{ background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:26px; }
   .statuspanel h4{ font-size:12.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--slate-dim); margin-bottom:18px; }
   .srow{ display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--line); font-size:14px; }
-  .srow:last-child{ border:none; }
+  .srow:last-child{ border-bottom:none; }
   .dot{ width:7px; height:7px; border-radius:50%; background:var(--good); display:inline-block; margin-right:9px; box-shadow:0 0 0 3px rgba(76,154,106,0.15); }
 
   /* ---------- Testimonials ---------- */
@@ -414,7 +417,7 @@
     opacity:0; transform:translateY(28px);
     transition:opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
   }
-  .reveal.is-visible{ opacity:1; transform:translateY(0); }
+  .reveal.is-visible{ opacity:1; transform:none; }
   @media (prefers-reduced-motion: reduce){
     *{ animation:none !important; transition:none !important; }
     .reveal{ opacity:1; transform:none; }
