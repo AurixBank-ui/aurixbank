@@ -157,6 +157,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { logLoginEvent } from './notifications.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
@@ -241,6 +242,7 @@
 
   let timerInterval;
   let currentEmail = '';
+  let currentUid = '';
 
   function startTimer(seconds = 300) {
     clearInterval(timerInterval);
@@ -279,7 +281,8 @@
     continueBtn.textContent = 'Checking…';
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      currentUid = cred.user.uid;
 
       currentEmail = email;
       await sendOtp(email);
@@ -359,6 +362,13 @@
     try {
       const result = await verifyOtp(currentEmail, code);
       if (result.success) {
+        // Record this sign-in for the notifications feed. Wrapped in its own
+        // try/catch so a Firestore rules gap here can never block login itself.
+        try {
+          await logLoginEvent(db, currentUid);
+        } catch (e) {
+          console.error('Could not record sign-in (check Firestore rules for "loginHistory"):', e);
+        }
         window.location.href = 'dashboard.html';
       } else {
         otpErr.textContent = result.message;
