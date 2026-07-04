@@ -368,6 +368,27 @@
   }
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+  // ── Camera-only capture on phones ──────────────────────────────
+  // On phones/tablets, the file input gets a `capture` attribute, which
+  // makes most mobile browsers open the camera directly instead of the
+  // photo gallery/file picker. On a computer (no capture attribute) the
+  // normal "choose from storage" file dialog is used.
+  //
+  // Note: this is a well-supported convention, not an absolute guarantee —
+  // a small number of older/unusual mobile browsers may still show a
+  // chooser with a gallery option alongside the camera. There is no fully
+  // enforceable way to block gallery access from the web platform itself.
+  function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  }
+  function applyCaptureConstraint(inputEl) {
+    if (isMobileDevice()) {
+      inputEl.setAttribute('capture', 'environment'); // rear camera
+    } else {
+      inputEl.removeAttribute('capture');
+    }
+  }
+
   function showFeedback(side, state, msg) {
     ['accepted','declined'].forEach(s => {
       document.getElementById(`${side}-${s}`).classList.remove('show');
@@ -451,6 +472,7 @@
   function setupUploadBox(side) {
     const box   = document.getElementById(`${side}-box`);
     const input = document.getElementById(`${side}-input`);
+    applyCaptureConstraint(input);
 
     box.addEventListener('click', (e) => {
       if (e.target.closest('.change-btn')) return;
@@ -476,10 +498,12 @@
           <button class="change-btn" type="button">Change</button>
           <input type="file" id="${side}-input" accept="image/*" style="display:none;">
         `;
+        const newInput = document.getElementById(`${side}-input`);
+        applyCaptureConstraint(newInput);
         box.querySelector('.change-btn').addEventListener('click', () => {
-          document.getElementById(`${side}-input`).click();
+          newInput.click();
         });
-        document.getElementById(`${side}-input`).addEventListener('change', async () => {
+        newInput.addEventListener('change', async () => {
           setupUploadBox(side);
         });
       };

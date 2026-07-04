@@ -93,6 +93,61 @@
   .limit-slider-row input[type="range"]{ flex:1; accent-color:var(--brass); }
   .limit-val{ font-family:'IBM Plex Mono', monospace; font-size:15px; color:var(--paper); min-width:92px; text-align:right; }
 
+  /* ---------- Transaction processing / result modal ---------- */
+  .txn-modal{
+    position:fixed; inset:0; z-index:999; display:none; align-items:center; justify-content:center;
+    background:rgba(30,42,61,0.55); backdrop-filter:blur(4px); padding:20px;
+  }
+  .txn-modal.show{ display:flex; }
+  .txn-modal-inner{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:40px 36px; text-align:center; width:340px; max-width:100%;
+  }
+  .txn-spinner{
+    width:44px; height:44px; margin:0 auto 20px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--brass);
+    animation:txn-spin 0.9s linear infinite;
+  }
+  @keyframes txn-spin{ to{ transform:rotate(360deg); } }
+  .txn-modal-text{ font-size:14.5px; color:var(--slate); }
+  .txn-modal-subtext{ font-size:12.5px; color:var(--slate-dim); margin-top:6px; }
+
+  .txn-anim{ width:260px; height:130px; display:block; margin:0 auto; overflow:visible; }
+  .figure-a, .figure-b{ transform-box: fill-box; }
+  .txn-result-text{ font-size:15px; font-weight:600; margin-top:6px; }
+  .txn-result-text.ok{ color:var(--good); }
+  .txn-result-text.no{ color:#B3261E; }
+  .txn-result-sub{ font-size:12.5px; color:var(--slate-dim); margin-top:4px; }
+
+  /* Success: a simple handshake icon, not a whole animated scene */
+  #success-visual{ display:none; width:88px; height:88px; margin:0 auto 6px; }
+  #decline-visual{ display:none; }
+  .txn-stage.success #success-visual{ display:block; animation: handshake-pop 0.55s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  .txn-stage.success #success-visual .clasp-group{ transform-box: fill-box; transform-origin:50% 50%; animation: handshake-wiggle 0.4s ease-in-out 0.55s 2; }
+  .txn-stage.decline #decline-visual{ display:block; }
+
+  @keyframes handshake-pop{
+    0%{ opacity:0; transform:scale(0.4) translateY(8px); }
+    65%{ opacity:1; transform:scale(1.12) translateY(0); }
+    100%{ opacity:1; transform:scale(1); }
+  }
+  @keyframes handshake-wiggle{
+    0%,100%{ transform:rotate(0deg); }
+    25%{ transform:rotate(-5deg); }
+    75%{ transform:rotate(5deg); }
+  }
+
+  @keyframes turn-and-leave{
+    0%{ transform:translateX(0) scaleX(1); }
+    18%{ transform:translateX(0) scaleX(-1); }
+    100%{ transform:translateX(150px) scaleX(-1); }
+  }
+  @keyframes fade-out-walk{ 0%,60%{ opacity:1; } 100%{ opacity:0; } }
+  @keyframes shrug{ 0%,100%{ transform:translateY(0); } 40%{ transform:translateY(-3px); } }
+
+  .txn-stage.decline .figure-b{ animation: turn-and-leave 1.6s ease-in forwards, fade-out-walk 1.6s ease-in forwards; }
+  .txn-stage.decline .figure-a .body-group{ animation: shrug 0.7s ease-in-out 2; }
+
   @media (max-width:480px){
     .visa-card{ padding:18px; border-radius:12px; }
     .vc-number{ font-size:15px; letter-spacing:0.08em; }
@@ -121,7 +176,7 @@
       <a href="chequedeposit.html"><span class="ic">⎘</span>Cheque Deposit</a>
       <a href="loans.html"><span class="ic">%</span>Loans</a>
       <a href="notifications.html"><span class="ic">⚑</span>Notifications</a>
-      <a href="#"><span class="ic">◎</span>Profile</a>
+      <a href="profile.html"><span class="ic">◎</span>Profile</a>
     </nav>
     <div class="sidebar-footer">
       <a href="#" id="logout-link">Log out</a>
@@ -332,6 +387,64 @@
   </div>
 </div>
 
+<!-- ── Transaction processing / result modal ─────────────────── -->
+<div class="txn-modal" id="txn-modal">
+  <div class="txn-modal-inner">
+
+    <div id="txn-stage-loading">
+      <div class="txn-spinner"></div>
+      <div class="txn-modal-text" id="txn-loading-text">Processing…</div>
+      <div class="txn-modal-subtext">This usually takes a few seconds.</div>
+    </div>
+
+    <div id="txn-stage-result" class="txn-stage" style="display:none;">
+
+      <!-- Success: a simple handshake icon -->
+      <svg id="success-visual" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="clasp-group">
+          <path d="M8,52 L38,46 Q46,44.5 50,50" stroke="var(--brass)" stroke-width="13" stroke-linecap="round" fill="none"/>
+          <ellipse cx="47" cy="50" rx="13" ry="10" fill="var(--brass)" transform="rotate(-8 47 50)"/>
+          <path d="M92,52 L62,46 Q54,44.5 50,50" stroke="var(--slate)" stroke-width="13" stroke-linecap="round" fill="none"/>
+          <ellipse cx="53" cy="50" rx="13" ry="10" fill="var(--slate)" transform="rotate(8 53 50)"/>
+          <path d="M42,45 L44,55 M50,43 L51,55" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M58,45 L56,55 M50,43 L49,55" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+        </g>
+      </svg>
+
+      <!-- Decline: the two figures, one turns and walks away -->
+      <svg id="decline-visual" class="txn-anim" viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg">
+        <line x1="10" y1="112" x2="250" y2="112" stroke="var(--line)" stroke-width="2"/>
+
+        <g class="figure-a" style="transform:translateX(0)">
+          <g class="body-group" transform="translate(70,10)">
+            <circle cx="0" cy="20" r="12" fill="var(--brass)"/>
+            <line x1="0" y1="32" x2="0" y2="68" stroke="var(--brass)" stroke-width="6" stroke-linecap="round"/>
+            <line x1="0" y1="42" x2="18" y2="60" stroke="var(--brass)" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="42" x2="-16" y2="60" stroke="var(--brass)" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="68" x2="-9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+            <line x1="0" y1="68" x2="9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <g class="figure-b" style="transform:translateX(0)">
+          <g class="body-group" transform="translate(190,10)">
+            <circle cx="0" cy="20" r="12" fill="var(--slate)"/>
+            <line x1="0" y1="32" x2="0" y2="68" stroke="var(--slate)" stroke-width="6" stroke-linecap="round"/>
+            <line x1="0" y1="42" x2="-18" y2="60" stroke="var(--slate)" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="42" x2="16" y2="60" stroke="var(--slate)" stroke-width="5" stroke-linecap="round"/>
+            <line x1="0" y1="68" x2="-9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+            <line x1="0" y1="68" x2="9" y2="98" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>
+          </g>
+        </g>
+      </svg>
+
+      <div class="txn-result-text" id="txn-result-text"></div>
+      <div class="txn-result-sub" id="txn-result-sub"></div>
+    </div>
+
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -471,6 +584,71 @@
     });
   });
 
+  // ---------- Transaction processing modal helpers ----------
+  // Same pattern used on Transfers and Bill Payments: a loading screen for
+  // 5-10s, then either a small handshake icon (success) or two figures with
+  // one walking away (decline).
+  //
+  // Decline only fires if `profileData.accountFlagged` is true. There's no
+  // admin panel yet to set that field, so it's always false today and every
+  // top-up / card transfer here goes through — this is ready to activate
+  // the moment account flagging is built, with zero changes needed here.
+  function randomProcessingDelay() {
+    return 5000 + Math.random() * 5000;
+  }
+  function openLoadingModal(text) {
+    document.getElementById('txn-loading-text').textContent = text || 'Processing…';
+    document.getElementById('txn-stage-loading').style.display = 'block';
+    const resultStage = document.getElementById('txn-stage-result');
+    resultStage.style.display = 'none';
+    resultStage.classList.remove('success', 'decline');
+    document.getElementById('txn-modal').classList.add('show');
+  }
+  function playResultAnimation(isSuccess, headline, subtext) {
+    document.getElementById('txn-stage-loading').style.display = 'none';
+    const resultStage = document.getElementById('txn-stage-result');
+    resultStage.style.display = 'block';
+    resultStage.classList.remove('success', 'decline');
+    void resultStage.offsetWidth;
+    resultStage.classList.add(isSuccess ? 'success' : 'decline');
+
+    const textEl = document.getElementById('txn-result-text');
+    textEl.textContent = headline;
+    textEl.className = 'txn-result-text ' + (isSuccess ? 'ok' : 'no');
+    document.getElementById('txn-result-sub').textContent = subtext || '';
+  }
+  function closeTxnModal() {
+    document.getElementById('txn-modal').classList.remove('show');
+  }
+  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  async function runCardTransactionFlow({ loadingText, declineSub, doTransaction }) {
+    openLoadingModal(loadingText);
+    await wait(randomProcessingDelay());
+
+    const isFlagged = !!(profileData && profileData.accountFlagged);
+
+    if (isFlagged) {
+      playResultAnimation(false, 'Transaction declined', declineSub || 'This account currently has restrictions.');
+      await wait(2400);
+      closeTxnModal();
+      return { allowed: false };
+    }
+
+    try {
+      await doTransaction();
+    } catch (e) {
+      console.error(e);
+      closeTxnModal();
+      return { allowed: true, ok: false };
+    }
+
+    playResultAnimation(true, 'Transaction complete', 'Your balances have been updated.');
+    await wait(2200);
+    closeTxnModal();
+    return { allowed: true, ok: true };
+  }
+
   // ── Auth + data load ──────────────────────────────────────────
   onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = 'login.html'; return; }
@@ -482,7 +660,7 @@
         getDoc(doc(db, 'users', uid)),
         getDoc(acctRef())
       ]);
-      profileData  = userSnap.exists() ? userSnap.data() : {};
+      profileData  = userSnap.exists() ? userSnap.data() : {}; // holds accountFlagged once the admin panel sets it
       accountsData = acctSnap.exists() ? acctSnap.data() : accountsData;
     } catch (e) {
       console.error('Could not load profile/account data:', e);
@@ -625,35 +803,39 @@
       return;
     }
 
-    const btn = document.getElementById('confirm-topup');
-    btn.disabled = true;
-    btn.textContent = 'Processing…';
+    topupModal.classList.remove('show');
 
-    // Optimistically apply to local state
-    const prevAccountBalance = accountsData[key];
-    const prevCardBalance    = card.balance;
-    accountsData[key]  = (accountsData[key] || 0) - amount;
-    card.balance       = (card.balance || 0) + amount;
-    addActivity(`Top up from ${from}`, amount);
+    const result = await runCardTransactionFlow({
+      loadingText: 'Processing your top-up…',
+      declineSub: 'Contact support to resolve this before trying again.',
+      doTransaction: async () => {
+        accountsData[key] = (accountsData[key] || 0) - amount;
+        card.balance      = (card.balance || 0) + amount;
+        addActivity(`Top up from ${from}`, amount);
 
-    try {
-      await Promise.all([
-        saveCard(),
-        saveAccounts(),
-        logToAccountHistory(`Card top-up from ${from === 'checking' ? 'Checking' : 'Savings'}`, -amount)
-      ]);
-      document.getElementById('topup-amount').value = '';
-      topupModal.classList.remove('show');
-      renderCard();
-    } catch (e) {
-      // Roll back all local state
-      accountsData[key] = prevAccountBalance;
-      card.balance      = prevCardBalance;
-      card.activity.pop(); // remove the activity entry we just added
-      console.error('Top-up save failed:', e);
+        await Promise.all([
+          saveCard(),
+          saveAccounts(),
+          logToAccountHistory(`Card top-up from ${from === 'checking' ? 'Checking' : 'Savings'}`, -amount)
+        ]);
+      }
+    });
+
+    if (!result.allowed) {
+      topupModal.classList.add('show');
       showSaveError('topup-save-error');
-      resetBtn('confirm-topup', 'Top up');
+      document.getElementById('topup-save-error').textContent = "This account currently has restrictions and can't process a top-up.";
+      return;
     }
+    if (!result.ok) {
+      topupModal.classList.add('show');
+      showSaveError('topup-save-error');
+      document.getElementById('topup-save-error').textContent = 'Top-up could not be saved. Check your connection and try again.';
+      return;
+    }
+
+    document.getElementById('topup-amount').value = '';
+    renderCard();
   });
 
   // ── Transfer card → account ───────────────────────────────────
@@ -681,36 +863,41 @@
       return;
     }
 
-    const btn = document.getElementById('confirm-transfer');
-    btn.disabled = true;
-    btn.textContent = 'Processing…';
+    transferModal.classList.remove('show');
 
-    // Optimistically apply to local state
-    const key             = to === 'checking' ? 'checkingBalance' : 'savingsBalance';
-    const prevCardBalance = card.balance;
-    const prevAcctBalance = accountsData[key];
-    card.balance          = (card.balance || 0) - amount;
-    accountsData[key]     = (accountsData[key] || 0) + amount;
-    addActivity(`Transfer to ${to}`, -amount);
+    const key = to === 'checking' ? 'checkingBalance' : 'savingsBalance';
 
-    try {
-      await Promise.all([
-        saveCard(),
-        saveAccounts(),
-        logToAccountHistory(`Transfer from card to ${to === 'checking' ? 'Checking' : 'Savings'}`, amount)
-      ]);
-      document.getElementById('transfer-amount').value = '';
-      transferModal.classList.remove('show');
-      renderCard();
-    } catch (e) {
-      // Roll back all local state
-      card.balance      = prevCardBalance;
-      accountsData[key] = prevAcctBalance;
-      card.activity.pop();
-      console.error('Transfer save failed:', e);
+    const result = await runCardTransactionFlow({
+      loadingText: 'Processing your transfer…',
+      declineSub: 'Contact support to resolve this before trying again.',
+      doTransaction: async () => {
+        card.balance      = (card.balance || 0) - amount;
+        accountsData[key] = (accountsData[key] || 0) + amount;
+        addActivity(`Transfer to ${to}`, -amount);
+
+        await Promise.all([
+          saveCard(),
+          saveAccounts(),
+          logToAccountHistory(`Transfer from card to ${to === 'checking' ? 'Checking' : 'Savings'}`, amount)
+        ]);
+      }
+    });
+
+    if (!result.allowed) {
+      transferModal.classList.add('show');
       showSaveError('transfer-save-error');
-      resetBtn('confirm-transfer', 'Transfer');
+      document.getElementById('transfer-save-error').textContent = "This account currently has restrictions and can't process a transfer.";
+      return;
     }
+    if (!result.ok) {
+      transferModal.classList.add('show');
+      showSaveError('transfer-save-error');
+      document.getElementById('transfer-save-error').textContent = 'Transfer could not be saved. Check your connection and try again.';
+      return;
+    }
+
+    document.getElementById('transfer-amount').value = '';
+    renderCard();
   });
 
   document.getElementById('logout-link').addEventListener('click', async (e) => {
