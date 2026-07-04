@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Loans — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="appshell" id="appshell">
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="brand"><span class="mark">A</span>Aurix Bank</a>
+    <nav>
+      <a href="dashboard.html"><span class="ic">◆</span>Dashboard</a>
+      <a href="accounts.html"><span class="ic">▤</span>Accounts</a>
+      <a href="transfers.html"><span class="ic">⇄</span>Transfers</a>
+      <a href="billpayments.html"><span class="ic">▦</span>Bill Payments</a>
+      <a href="cards.html"><span class="ic">▭</span>Cards</a>
+      <a href="chequedeposit.html"><span class="ic">⎘</span>Cheque Deposit</a>
+      <a href="loans.html" class="active"><span class="ic">%</span>Loans</a>
+      <a href="#"><span class="ic">⚑</span>Notifications</a>
+      <a href="#" id="profile-nav-link"><span class="ic">◎</span>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" id="logout-link">Log out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open menu">☰</button>
+      <div class="topbar-search"><input type="text" placeholder="Search transactions, accounts..."></div>
+      <div class="topbar-right">
+        <span class="bell">⚑<span class="dotbadge"></span></span>
+        <div class="avatar-btn" id="topbar-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="content-pad">
+      <div class="welcome-row">
+        <div>
+          <h1>Loans</h1>
+          <div class="lastlogin">Compare loan products, estimate payments, and apply.</div>
+        </div>
+      </div>
+
+      <div class="tab-row">
+        <button class="tab-btn active" data-tab="apply" type="button">Apply for a loan</button>
+        <button class="tab-btn" data-tab="mine" type="button">My applications</button>
+      </div>
+
+      <!-- ===== Apply tab ===== -->
+      <div class="tab-panel active" id="tab-apply">
+
+        <div class="loan-types-grid reveal" id="loan-types">
+          <button class="loan-type-card" data-type="personal" data-apr="11.99" type="button">
+            <span class="ic">◆</span>
+            <h4>Personal loan</h4>
+            <p>For debt consolidation, big purchases, or anything in between.</p>
+            <span class="rate">From 11.99% APR</span>
+          </button>
+          <button class="loan-type-card" data-type="auto" data-apr="6.49" type="button">
+            <span class="ic">▭</span>
+            <h4>Auto loan</h4>
+            <p>Finance a new or used vehicle with fixed monthly payments.</p>
+            <span class="rate">From 6.49% APR</span>
+          </button>
+          <button class="loan-type-card" data-type="home" data-apr="6.75" type="button">
+            <span class="ic">⌂</span>
+            <h4>Home loan</h4>
+            <p>Purchase or refinance with competitive fixed and variable rates.</p>
+            <span class="rate">From 6.75% APR</span>
+          </button>
+          <button class="loan-type-card" data-type="student" data-apr="5.50" type="button">
+            <span class="ic">✎</span>
+            <h4>Student loan</h4>
+            <p>Cover tuition and living costs with flexible repayment terms.</p>
+            <span class="rate">From 5.50% APR</span>
+          </button>
+        </div>
+
+        <div class="loan-form-wrap" id="loan-form-wrap">
+          <div class="card">
+            <div class="card-head"><h3 id="form-title">Loan application</h3></div>
+
+            <div class="loan-estimate">
+              <div>
+                <div class="lbl">Estimated monthly payment</div>
+                <div class="val" id="est-payment">$0<span class="sub">/mo</span></div>
+              </div>
+              <div>
+                <div class="lbl">Rate</div>
+                <div class="val" id="est-apr" style="font-size:18px;">—</div>
+              </div>
+              <div>
+                <div class="lbl">Term</div>
+                <div class="val" id="est-term" style="font-size:18px;">—</div>
+              </div>
+            </div>
+
+            <div class="form-error" id="loan-error">Please complete all required fields and agree to the terms before applying.</div>
+            <div class="form-success" id="loan-success">Your application was submitted and is pending review.</div>
+
+            <form id="loan-form">
+              <div class="loan-form-section">
+                <div class="sec-title">Loan details</div>
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label>Amount requested</label>
+                    <input type="number" id="loan-amount" min="500" step="50" placeholder="10,000" required>
+                  </div>
+                  <div class="form-field">
+                    <label>Term</label>
+                    <select id="loan-term" required>
+                      <option value="12">12 months</option>
+                      <option value="24">24 months</option>
+                      <option value="36" selected>36 months</option>
+                      <option value="48">48 months</option>
+                      <option value="60">60 months</option>
+                    </select>
+                  </div>
+                  <div class="form-field full">
+                    <label>Purpose of loan</label>
+                    <select id="loan-purpose" required>
+                      <option value="">Select a purpose</option>
+                      <option>Debt consolidation</option>
+                      <option>Home improvement</option>
+                      <option>Vehicle purchase</option>
+                      <option>Education</option>
+                      <option>Medical expenses</option>
+                      <option>Major purchase</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="loan-form-section">
+                <div class="sec-title">Personal information</div>
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label>Full legal name</label>
+                    <input type="text" id="loan-name" placeholder="Jane A. Doe" required>
+                  </div>
+                  <div class="form-field">
+                    <label>Date of birth</label>
+                    <input type="date" id="loan-dob" required>
+                  </div>
+                  <div class="form-field">
+                    <label>Social Security Number</label>
+                    <input type="text" id="loan-ssn" placeholder="XXX-XX-XXXX" maxlength="11" required>
+                  </div>
+                  <div class="form-field">
+                    <label>Phone number</label>
+                    <input type="tel" id="loan-phone" placeholder="(555) 123-4567" required>
+                  </div>
+                  <div class="form-field full">
+                    <label>Email address</label>
+                    <input type="email" id="loan-email" placeholder="you@example.com" required>
+                  </div>
+                  <div class="form-field full">
+                    <label>Residential address</label>
+                    <input type="text" id="loan-address" placeholder="Street, city, state, ZIP" required>
+                  </div>
+                  <div class="form-field">
+                    <label>Housing status</label>
+                    <select id="loan-housing" required>
+                      <option value="">Select one</option>
+                      <option>Own</option>
+                      <option>Rent</option>
+                      <option>Live with family</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label>Monthly housing payment</label>
+                    <input type="number" id="loan-housing-payment" min="0" step="10" placeholder="0.00">
+                  </div>
+                </div>
+                <div class="form-note">For your security, only the last 4 digits of your SSN are stored — the full number is used solely to complete this form and is not saved.</div>
+              </div>
+
+              <div class="loan-form-section">
+                <div class="sec-title">Employment &amp; income</div>
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label>Employment status</label>
+                    <select id="loan-employment" required>
+                      <option value="">Select one</option>
+                      <option>Employed</option>
+                      <option>Self-employed</option>
+                      <option>Unemployed</option>
+                      <option>Retired</option>
+                      <option>Student</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label>Employer name</label>
+                    <input type="text" id="loan-employer" placeholder="Company name">
+                  </div>
+                  <div class="form-field">
+                    <label>Job title</label>
+                    <input type="text" id="loan-jobtitle" placeholder="e.g. Operations manager">
+                  </div>
+                  <div class="form-field">
+                    <label>Gross annual income</label>
+                    <input type="number" id="loan-income" min="0" step="100" placeholder="0.00" required>
+                  </div>
+                  <div class="form-field full">
+                    <label>Other annual income (optional)</label>
+                    <input type="number" id="loan-other-income" min="0" step="100" placeholder="0.00">
+                  </div>
+                </div>
+              </div>
+
+              <div class="consent-row">
+                <input type="checkbox" id="loan-consent" required>
+                <label for="loan-consent">I certify that the information provided is accurate and complete, and I authorize Aurix Bank to review this application, including a credit check, to make a lending decision.</label>
+              </div>
+
+              <button class="btn btn-brass" type="submit" style="width:100%;">Apply loan</button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===== My applications tab ===== -->
+      <div class="tab-panel" id="tab-mine">
+        <div class="card">
+          <div class="card-head"><h3>My applications</h3></div>
+          <div id="applications-list">
+            <div class="empty-state"><div class="ic">%</div><p>You haven't applied for a loan yet.</p></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // How long an application stays "Pending review" before it flips to
+  // "Declined" on its own. Randomized between 30 and 60 minutes per
+  // application so it doesn't feel like a fixed timer.
+  const DECISION_DELAY_MIN_MS = 30 * 60 * 1000;
+  const DECISION_DELAY_MAX_MS = 60 * 60 * 1000;
+  function randomDecisionDelay() {
+    return DECISION_DELAY_MIN_MS + Math.random() * (DECISION_DELAY_MAX_MS - DECISION_DELAY_MIN_MS);
+  }
+
+  function money(n) {
+    const parts = Math.abs(n || 0).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `$${parts[0]}.${parts[1]}`;
+  }
+  function moneyRound(n) {
+    return `$${Math.round(n || 0).toLocaleString('en-US')}`;
+  }
+
+  let uid = null;
+  let profileData = {};
+  let loansData = { items: [] };
+  let selectedType = null;
+  let selectedApr = 0;
+
+  const loansRef = () => doc(db, 'loanApplications', uid);
+
+  // ---------- Tabs ----------
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.getElementById(`tab-${btn.dataset.tab}`);
+      panel.classList.add('active');
+      panel.classList.remove('fade-slide-enter');
+      void panel.offsetWidth; // restart animation
+      panel.classList.add('fade-slide-enter');
+      if (btn.dataset.tab === 'mine') renderApplications();
+    });
+  });
+
+  // ---------- Loan type selection ----------
+  function updateEstimate() {
+    const amount = parseFloat(document.getElementById('loan-amount').value) || 0;
+    const term = parseInt(document.getElementById('loan-term').value, 10) || 36;
+    const r = selectedApr / 100 / 12;
+    let payment = 0;
+    if (amount > 0 && r > 0) {
+      payment = amount * r * Math.pow(1 + r, term) / (Math.pow(1 + r, term) - 1);
+    }
+    document.getElementById('est-payment').innerHTML = `${moneyRound(payment)}<span class="sub">/mo</span>`;
+    document.getElementById('est-apr').textContent = selectedApr ? `${selectedApr}% APR` : '—';
+    document.getElementById('est-term').textContent = `${term} months`;
+  }
+
+  document.querySelectorAll('.loan-type-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.loan-type-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedType = card.dataset.type;
+      selectedApr = parseFloat(card.dataset.apr);
+      document.getElementById('form-title').textContent = `${card.querySelector('h4').textContent} application`;
+      document.getElementById('loan-form-wrap').classList.add('open');
+      updateEstimate();
+      document.getElementById('loan-form-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+  document.getElementById('loan-amount').addEventListener('input', updateEstimate);
+  document.getElementById('loan-term').addEventListener('change', updateEstimate);
+
+  // SSN formatting as the person types (display only)
+  document.getElementById('loan-ssn').addEventListener('input', (e) => {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 9);
+    if (v.length > 5) v = `${v.slice(0,3)}-${v.slice(3,5)}-${v.slice(5)}`;
+    else if (v.length > 3) v = `${v.slice(0,3)}-${v.slice(3)}`;
+    e.target.value = v;
+  });
+
+  // ---------- Load user data ----------
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    uid = user.uid;
+    try {
+      const [userSnap, loanSnap] = await Promise.all([
+        getDoc(doc(db, 'users', uid)),
+        getDoc(loansRef())
+      ]);
+      profileData = userSnap.exists() ? userSnap.data() : {};
+      loansData = loanSnap.exists() ? loanSnap.data() : { items: [] };
+    } catch (e) {
+      console.error('Could not load loan data:', e);
+    }
+    const topbarAvatar = document.getElementById('topbar-avatar');
+    if (profileData.profilePictureURL) {
+      topbarAvatar.innerHTML = `<img src="${profileData.profilePictureURL}" alt="">`;
+    } else {
+      topbarAvatar.textContent = `${(profileData.firstName||'A')[0]}${(profileData.lastName||'')[0]||''}`.toUpperCase();
+    }
+    if (profileData.firstName || profileData.lastName) {
+      document.getElementById('loan-name').value = `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim();
+    }
+    if (profileData.email) document.getElementById('loan-email').value = profileData.email;
+  });
+
+  // ---------- Submit application ----------
+  document.getElementById('loan-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('loan-error');
+    const okEl = document.getElementById('loan-success');
+    errEl.classList.remove('show'); okEl.classList.remove('show');
+
+    const form = document.getElementById('loan-form');
+    if (!selectedType || !form.checkValidity() || !document.getElementById('loan-consent').checked) {
+      errEl.classList.add('show');
+      form.reportValidity();
+      return;
+    }
+
+    const ssnDigits = document.getElementById('loan-ssn').value.replace(/\D/g, '');
+
+    const application = {
+      id: 'loan_' + Date.now(),
+      type: selectedType,
+      apr: selectedApr,
+      amount: parseFloat(document.getElementById('loan-amount').value),
+      term: parseInt(document.getElementById('loan-term').value, 10),
+      purpose: document.getElementById('loan-purpose').value,
+      name: document.getElementById('loan-name').value,
+      dob: document.getElementById('loan-dob').value,
+      ssnLast4: ssnDigits.slice(-4),
+      phone: document.getElementById('loan-phone').value,
+      email: document.getElementById('loan-email').value,
+      address: document.getElementById('loan-address').value,
+      housingStatus: document.getElementById('loan-housing').value,
+      housingPayment: parseFloat(document.getElementById('loan-housing-payment').value) || 0,
+      employmentStatus: document.getElementById('loan-employment').value,
+      employer: document.getElementById('loan-employer').value,
+      jobTitle: document.getElementById('loan-jobtitle').value,
+      annualIncome: parseFloat(document.getElementById('loan-income').value) || 0,
+      otherIncome: parseFloat(document.getElementById('loan-other-income').value) || 0,
+      status: 'Pending review',
+      submittedAt: Date.now(),
+      decisionAt: Date.now() + randomDecisionDelay()
+    };
+
+    loansData.items.push(application);
+    try {
+      await setDoc(loansRef(), loansData);
+    } catch (err) {
+      console.error('Could not save loan application:', err);
+    }
+
+    okEl.classList.add('show');
+    form.reset();
+    document.getElementById('loan-ssn').value = '';
+    document.querySelectorAll('.loan-type-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('loan-form-wrap').classList.remove('open');
+    selectedType = null; selectedApr = 0;
+
+    document.querySelector('.tab-btn[data-tab="mine"]').click();
+  });
+
+  // ---------- Applications list (with auto-decline after the delay) ----------
+  async function renderApplications() {
+    const now = Date.now();
+    let changed = false;
+    loansData.items.forEach(item => {
+      if (item.status === 'Pending review' && item.decisionAt && now >= item.decisionAt) {
+        item.status = 'Declined';
+        changed = true;
+      }
+    });
+    if (changed) {
+      try { await setDoc(loansRef(), loansData); } catch (e) { console.error(e); }
+    }
+
+    const list = document.getElementById('applications-list');
+    const items = [...loansData.items].sort((a, b) => b.submittedAt - a.submittedAt);
+    if (items.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="ic">%</div><p>You haven't applied for a loan yet.</p></div>`;
+      return;
+    }
+    const typeLabel = { personal: 'Personal loan', auto: 'Auto loan', home: 'Home loan', student: 'Student loan' };
+    list.innerHTML = items.map(it => `
+      <div class="loan-app-row fade-slide-enter">
+        <div class="who">
+          <span class="desc">${typeLabel[it.type] || 'Loan'} — ${it.purpose || 'General'}</span>
+          <span class="meta">Applied ${new Date(it.submittedAt).toLocaleDateString()} · ${it.term} months · ${it.apr}% APR</span>
+        </div>
+        <div class="right">
+          <span class="amt">${money(it.amount)}</span>
+          <span class="status-pill ${it.status === 'Declined' ? 'declined' : it.status === 'Approved' ? 'approved' : 'pending'}">${it.status}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  // Re-check for decisions periodically while the tab is open, so a pending
+  // application flips to Declined live without needing a page refresh.
+  // Checked once a minute since the decision window is now 30–60 minutes.
+  setInterval(() => {
+    if (document.getElementById('tab-mine').classList.contains('active')) {
+      renderApplications();
+    }
+  }, 60000);
+
+  // ---------- Mobile sidebar ----------
+  const appshell = document.getElementById('appshell');
+  document.getElementById('menu-toggle')?.addEventListener('click', () => appshell.classList.add('sidebar-open'));
+  document.getElementById('sidebar-backdrop')?.addEventListener('click', () => appshell.classList.remove('sidebar-open'));
+
+  // ---------- Scroll reveal ----------
+  document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 70}ms`; });
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); revealObserver.unobserve(entry.target); }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  setTimeout(() => {
+    document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible'));
+  }, 2000);
+
+  document.getElementById('logout-link').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = 'login.html';
+  });
+</script>
+</body>
+</html>
