@@ -125,6 +125,9 @@
   const createBtn = document.getElementById('create-account-btn');
   const err = document.getElementById('signup-err');
 
+  // UPDATED: Import collection and addDoc for pending registrations
+  import { collection, addDoc, serverTimestamp as serverTS } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
   // ---------- Seed data generation ----------
   // Realistic-looking US merchants and individuals for a demo transaction history.
   const MERCHANTS = [
@@ -237,86 +240,29 @@
     }
 
     createBtn.disabled = true;
-    createBtn.textContent = 'Creating account…';
+    createBtn.textContent = 'Submitting registration…';
 
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      const fullName = `${first} ${last}`;
-
-      // Store the profile info Firebase Auth doesn't hold itself
-      await setDoc(doc(db, 'users', cred.user.uid), {
+      // UPDATED: Submit to pending registrations instead of creating account directly
+      await addDoc(collection(db, 'pendingRegistrations'), {
         firstName: first,
         lastName: last,
         email: email,
         phone: phone,
-        profilePictureURL: null,
-        createdAt: serverTimestamp()
+        password: pass,
+        status: 'pending',
+        createdAt: serverTS()
       });
 
-      // Auto-generate starting balances and a full transaction history
-      const seed = generateSeedData(fullName);
-
-      await setDoc(doc(db, 'accounts', cred.user.uid), {
-        checkingBalance: seed.checkingBalance,
-        savingsBalance: seed.savingsBalance,
-        updatedAt: serverTimestamp()
-      });
-
-      await setDoc(doc(db, 'transactions', cred.user.uid), {
-        items: seed.transactions
-      });
-
-      // Auto-create a virtual card for every new account (so Cards tab works immediately).
-      const now = Date.now();
-      const expiry = (() => {
-        const d = new Date();
-        d.setFullYear(d.getFullYear() + 4);
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const yy = String(d.getFullYear()).slice(-2);
-        return `${mm}/${yy}`;
-      })();
-
-      const fakeNumber = (() => {
-        const groups = [];
-        for (let g = 0; g < 4; g++) groups.push(String(Math.floor(1000 + Math.random() * 9000)));
-        return groups.join(' ');
-      })();
-
-      const fakeCvv = String(Math.floor(100 + Math.random() * 900));
-
-      await setDoc(doc(db, 'cards', cred.user.uid), {
-        cards: [
-          {
-            id: 'card_' + now,
-            number: fakeNumber,
-            cvv: fakeCvv,
-            nickname: 'Main card',
-            expiry,
-            status: 'active',
-            balance: 0,
-            limit: 1000,
-            activity: []
-          }
-        ]
-      });
-
-      window.location.href = `login.html?justSignedUp=1&email=${encodeURIComponent(email)}`;
+      // Redirect to pending page
+      window.location.href = `registration-pending.html?email=${encodeURIComponent(email)}`;
 
 
 
     } catch (e) {
       createBtn.disabled = false;
       createBtn.textContent = 'Continue to verification';
-
-      if (e.code === 'auth/email-already-in-use') {
-        err.textContent = 'An account with that email already exists. Try logging in instead.';
-      } else if (e.code === 'auth/invalid-email') {
-        err.textContent = 'That email address doesn\'t look right.';
-      } else if (e.code === 'auth/weak-password') {
-        err.textContent = 'Choose a stronger password (at least 8 characters).';
-      } else {
-        err.textContent = 'Something went wrong creating your account. Please try again.';
-      }
+      err.textContent = 'Something went wrong. Please try again.';
       err.classList.add('show');
       console.error(e);
     }

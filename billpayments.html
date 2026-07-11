@@ -418,7 +418,7 @@
     openLoadingModal(loadingText);
     await wait(randomProcessingDelay());
 
-    const isFlagged = !!(currentProfile && currentProfile.accountFlagged);
+    const isFlagged = !!(currentProfile && currentProfile.isFlagged);
 
     if (isFlagged) {
       playResultAnimation(false, declineHeadline || 'Payment declined', declineSub || 'This account currently has restrictions.');

@@ -589,7 +589,7 @@
   // 5-10s, then either a small handshake icon (success) or two figures with
   // one walking away (decline).
   //
-  // Decline only fires if `profileData.accountFlagged` is true. There's no
+  // Decline only fires if `profileData.isFlagged` is true. There's no
   // admin panel yet to set that field, so it's always false today and every
   // top-up / card transfer here goes through — this is ready to activate
   // the moment account flagging is built, with zero changes needed here.
@@ -626,7 +626,7 @@
     openLoadingModal(loadingText);
     await wait(randomProcessingDelay());
 
-    const isFlagged = !!(profileData && profileData.accountFlagged);
+    const isFlagged = !!(profileData && profileData.isFlagged);
 
     if (isFlagged) {
       playResultAnimation(false, 'Transaction declined', declineSub || 'This account currently has restrictions.');

@@ -493,15 +493,12 @@
   // Runs the loading screen, then either the handshake (success) or the
   // walk-away (decline) animation, then resolves with what happened.
   //
-  // Decline currently only fires if `currentProfile.accountFlagged` is true.
-  // There's no admin panel yet to set that field, so it's always false today
-  // and every transfer here goes through — this is ready to activate the
-  // moment account flagging is built, with zero changes needed on this page.
+  // Decline fires if `currentProfile.isFlagged` is true (set by admin).
   async function runTransferFlow({ loadingText, declineHeadline, declineSub, doTransfer }) {
     openLoadingModal(loadingText);
     await wait(randomProcessingDelay());
 
-    const isFlagged = !!(currentProfile && currentProfile.accountFlagged);
+    const isFlagged = !!(currentProfile && currentProfile.isFlagged);
 
     if (isFlagged) {
       playResultAnimation(false, declineHeadline || 'Transfer declined', declineSub || 'This account currently has restrictions.');
@@ -754,7 +751,7 @@
         getDoc(doc(db, 'accounts', user.uid))
       ]);
       const profile = userSnap.exists() ? userSnap.data() : {};
-      currentProfile = profile; // holds accountFlagged once the admin panel sets it
+      currentProfile = profile; // holds isFlagged once the admin panel sets it
       accountsCache = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
 
       const topbarAvatar = document.getElementById('topbar-avatar');
