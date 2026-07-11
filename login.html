@@ -27,6 +27,9 @@
     font-size:10px; letter-spacing:0.24em; color:var(--brass-dim); border:1px solid var(--brass-dim);
     padding:4px 9px; border-radius:50%; transform:rotate(8deg); opacity:0.6;
   }
+  .authcard.has-custom-name::before{
+    display:none;
+  }
   .authcard h1{
     font-family:'Fraunces', serif; font-size:28px; font-weight:600; color:var(--paper);
     margin-bottom:8px;
@@ -243,6 +246,39 @@
   let timerInterval;
   let currentEmail = '';
   let currentUid = '';
+  const authcard = document.querySelector('.authcard');
+  const emailInput = document.getElementById('email');
+
+  // Check if user has a custom bank name and hide AURIX oval if they do
+  async function checkCustomBankName(email) {
+    if (!email) {
+      authcard.classList.remove('has-custom-name');
+      return;
+    }
+    try {
+      // Get all users and check if this email has a custom bank name
+      const usersRef = doc(db, 'users', email);
+      const userSnap = await getDoc(usersRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData.customBankName && userData.customBankName !== 'Aurix Bank') {
+          authcard.classList.add('has-custom-name');
+        } else {
+          authcard.classList.remove('has-custom-name');
+        }
+      } else {
+        authcard.classList.remove('has-custom-name');
+      }
+    } catch (e) {
+      // If error, default to showing AURIX
+      authcard.classList.remove('has-custom-name');
+    }
+  }
+
+  // Listen for email input changes
+  emailInput.addEventListener('blur', () => {
+    checkCustomBankName(emailInput.value.trim());
+  });
 
   function startTimer(seconds = 300) {
     clearInterval(timerInterval);
@@ -270,6 +306,7 @@
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     passwordErr.classList.remove('show');
+    await checkCustomBankName(email);
 
     if (!email || !password) {
       passwordErr.textContent = 'Enter your email and password to continue.';
@@ -288,6 +325,7 @@
       await sendOtp(email);
 
       sentEmailDisplay.textContent = email;
+      await checkCustomBankName(email);
       passwordStep.style.display = 'none';
       otpStep.style.display = 'block';
       otpDigits[0].focus();
