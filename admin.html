@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .admin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:900px){ .admin-grid{ grid-template-columns:1fr; } }
+  .user-row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .user-row:last-child{ border-bottom:none; }
+  .user-info .name{ font-weight:600; color:var(--paper); }
+  .user-info .email{ font-size:12px; color:var(--slate-dim); }
+  .badge{ font-size:10px; padding:2px 6px; border-radius:10px; margin-left:8px; text-transform:uppercase; }
+  .badge.flagged{ background:rgba(179,38,30,0.2); color:#E1948F; border:1px solid rgba(179,38,30,0.3); }
+  .action-btns{ display:flex; gap:8px; }
+  .btn-sm{ padding:6px 10px; font-size:12px; }
+  .modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(30,42,61,0.55); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+  .modal-backdrop.show{ display:flex; }
+  .modal{ background:var(--panel); border-radius:8px; padding:28px; max-width:450px; width:100%; border:1px solid var(--line); }
+  .form-field{ margin-bottom:15px; }
+  .form-field label{ display:block; font-size:12px; color:var(--slate-dim); margin-bottom:5px; }
+  .form-field input, .form-field select{ width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px; padding:10px; color:var(--paper); }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="appshell">
+  <aside class="sidebar">
+    <a href="#" class="brand"><span class="mark">A</span>Admin Portal</a>
+    <nav>
+      <a href="#" class="active"><span class="ic">◆</span>User Management</a>
+      <a href="#" id="logout-btn"><span class="ic">◎</span>Log out</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-right">
+        <div class="avatar-btn">AD</div>
+      </div>
+    </div>
+
+    <div class="content-pad">
+      <div class="welcome-row">
+        <div>
+          <h1>Administrator Dashboard</h1>
+          <div class="lastlogin">Manage users, approvals, and system settings.</div>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <div class="card reveal">
+          <div class="card-head"><h3>Pending Registrations</h3></div>
+          <div id="pending-list">
+            <div class="empty-state"><p>No pending registrations.</p></div>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-head"><h3>Active Users</h3></div>
+          <div id="user-list">
+            <div class="empty-state"><p>Loading users...</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal-backdrop" id="approve-modal">
+  <div class="modal">
+    <h3>Approve Registration</h3>
+    <p class="sub" id="approve-user-info"></p>
+    <div class="form-field">
+      <label>Initial Checking Balance ($)</label>
+      <input type="number" id="initial-balance" value="1000.00" step="0.01">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('approve-modal')">Cancel</button>
+      <button class="btn btn-brass" id="confirm-approve-btn">Approve & Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <h3>Edit User Account</h3>
+    <p class="sub" id="edit-user-info"></p>
+    <div class="form-field">
+      <label>Checking Balance ($)</label>
+      <input type="number" id="edit-checking" step="0.01">
+    </div>
+    <div class="form-field">
+      <label>Savings Balance ($)</label>
+      <input type="number" id="edit-savings" step="0.01">
+    </div>
+    <div class="form-field">
+      <label>Custom Bank Name</label>
+      <input type="text" id="edit-bank-name">
+    </div>
+    <div class="form-field">
+      <label>Account Status</label>
+      <select id="edit-status">
+        <option value="active">Active</option>
+        <option value="flagged">Flagged (Restricted)</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
+      <button class="btn btn-brass" id="save-user-btn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const functions = getFunctions(app);
+
+  if (sessionStorage.getItem('admin_verified') !== 'true') {
+    window.location.href = 'admin-login.html';
+  }
+
+  let selectedRegId = null;
+  let selectedUserId = null;
+
+  async function loadData() {
+    const pendingSnap = await getDocs(query(collection(db, 'pendingRegistrations'), where('status', '==', 'pending')));
+    const pendingList = document.getElementById('pending-list');
+    pendingList.innerHTML = pendingSnap.empty ? '<div class="empty-state"><p>No pending registrations.</p></div>' : 
+      pendingSnap.docs.map(d => {
+        const data = d.data();
+        return `<div class="user-row"><div class="user-info"><div class="name">${data.firstName} ${data.lastName}</div><div class="email">${data.email}</div></div><button class="btn btn-brass btn-sm" onclick="openApproveModal('${d.id}', '${data.firstName} ${data.lastName}')">Approve</button></div>`;
+      }).join('');
+
+    const usersSnap = await getDocs(collection(db, 'users'));
+    const userList = document.getElementById('user-list');
+    userList.innerHTML = (await Promise.all(usersSnap.docs.map(async d => {
+      const data = d.data();
+      if (data.isAdmin) return '';
+      const acctSnap = await getDoc(doc(db, 'accounts', d.id));
+      const acct = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
+      return `<div class="user-row"><div class="user-info"><div class="name">${data.firstName} ${data.lastName} ${data.isFlagged ? '<span class="badge flagged">Flagged</span>' : ''}</div><div class="email">${data.email} · Bal: $${(acct.checkingBalance + acct.savingsBalance).toFixed(2)}</div></div><button class="btn btn-ghost btn-sm" onclick="openEditModal('${d.id}')">Edit</button></div>`;
+    }))).join('');
+  }
+
+  window.openApproveModal = (id, name) => {
+    selectedRegId = id;
+    document.getElementById('approve-user-info').textContent = `Reviewing registration for ${name}`;
+    document.getElementById('approve-modal').classList.add('show');
+  };
+
+  window.openEditModal = async (uid) => {
+    selectedUserId = uid;
+    const userSnap = await getDoc(doc(db, 'users', uid));
+    const acctSnap = await getDoc(doc(db, 'accounts', uid));
+    const user = userSnap.data();
+    const acct = acctSnap.data();
+    document.getElementById('edit-user-info').textContent = `Editing ${user.firstName} ${user.lastName}`;
+    document.getElementById('edit-checking').value = acct.checkingBalance;
+    document.getElementById('edit-savings').value = acct.savingsBalance;
+    document.getElementById('edit-bank-name').value = user.customBankName || 'Aurix Bank';
+    document.getElementById('edit-status').value = user.isFlagged ? 'flagged' : 'active';
+    document.getElementById('edit-modal').classList.add('show');
+  };
+
+  window.closeModal = (id) => document.getElementById(id).classList.remove('show');
+
+  document.getElementById('confirm-approve-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('confirm-approve-btn');
+    btn.disabled = true; btn.textContent = 'Processing...';
+    try {
+      const approve = httpsCallable(functions, 'approveRegistration');
+      await approve({ regId: selectedRegId, initialBalance: document.getElementById('initial-balance').value });
+      closeModal('approve-modal');
+      loadData();
+    } catch (e) { alert(e.message); }
+    btn.disabled = false; btn.textContent = 'Approve & Create Account';
+  });
+
+  document.getElementById('save-user-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('save-user-btn');
+    btn.disabled = true;
+    try {
+      await updateDoc(doc(db, 'users', selectedUserId), {
+        customBankName: document.getElementById('edit-bank-name').value,
+        isFlagged: document.getElementById('edit-status').value === 'flagged'
+      });
+      await updateDoc(doc(db, 'accounts', selectedUserId), {
+        checkingBalance: parseFloat(document.getElementById('edit-checking').value),
+        savingsBalance: parseFloat(document.getElementById('edit-savings').value)
+      });
+      closeModal('edit-modal');
+      loadData();
+    } catch (e) { alert(e.message); }
+    btn.disabled = false;
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    sessionStorage.clear();
+    await signOut(auth);
+    window.location.href = 'admin-login.html';
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user && user.email === 'aurixbank@gmail.com') loadData();
+  });
+</script>
+</body>
+</html>

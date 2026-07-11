@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Registration Pending — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .authwrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .authcard{ width:100%; max-width:440px; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:40px 36px; text-align:center; }
+  .icon-circle{ width:64px; height:64px; background:var(--panel-2); border:1px solid var(--line); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px; color:var(--brass); font-size:24px; }
+  h1{ font-family:'Fraunces', serif; font-size:26px; color:var(--paper); margin-bottom:12px; }
+  p{ color:var(--slate); font-size:15px; line-height:1.6; margin-bottom:24px; }
+  .email-box{ background:var(--ink); border:1px solid var(--line); border-radius:4px; padding:12px; font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--paper); margin-bottom:30px; }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="authwrap">
+  <div class="authcard">
+    <div class="icon-circle">⌛</div>
+    <h1>Registration Pending</h1>
+    <p>Your account request for <strong>Aurix Bank</strong> has been submitted. For security, an administrator must review and approve your application before you can log in.</p>
+    <div class="email-box" id="user-email">...</div>
+    <p>You will receive an email once your account is ready. This typically takes 1-2 business days.</p>
+    <a href="index.html" class="btn btn-ghost">Return to Homepage</a>
+  </div>
+</div>
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  document.getElementById('user-email').textContent = urlParams.get('email') || 'your email';
+</script>
+</body>
+</html>

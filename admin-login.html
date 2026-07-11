@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Access — Aurix Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .authwrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .authcard{ width:100%; max-width:400px; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:40px 36px; position:relative; }
+  .authcard h1{ font-family:'Fraunces', serif; font-size:24px; color:var(--paper); margin-bottom:8px; text-align:center; }
+  .authcard p.sub{ color:var(--slate); font-size:14px; margin-bottom:30px; text-align:center; }
+  .field{ margin-bottom:18px; }
+  .field label{ display:block; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--slate-dim); margin-bottom:8px; }
+  .field input{
+    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px;
+    padding:13px 14px; font-size:15px; color:var(--paper); outline:none;
+  }
+  .field input:focus{ border-color:var(--brass); }
+  .btn{ width:100%; padding:13px; font-size:15px; margin-top:10px; }
+  .err{
+    background:rgba(201,90,90,0.1); border:1px solid rgba(201,90,90,0.3); color:#E1948F;
+    font-size:13px; padding:11px 14px; border-radius:4px; margin-bottom:18px; display:none;
+  }
+  .err.show{ display:block; }
+  .otp-inputs{ display:flex; gap:10px; margin-bottom:24px; }
+  .otp-inputs input{
+    width:100%; aspect-ratio:1; text-align:center; font-size:22px;
+    background:var(--ink); border:1px solid var(--line); border-radius:4px;
+    color:var(--paper); font-family:'IBM Plex Mono', monospace; outline:none;
+  }
+  .otp-inputs input:focus{ border-color:var(--brass); }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="authwrap">
+  <div class="authcard">
+    <div id="login-step">
+      <h1>Admin Portal</h1>
+      <p class="sub">Secure access for authorized personnel only.</p>
+      <div class="err" id="login-err">Invalid credentials.</div>
+      <div class="field">
+        <label>Admin Email</label>
+        <input type="email" id="admin-email" placeholder="admin@aurix.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="admin-password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-brass" id="login-btn">Verify Identity</button>
+    </div>
+
+    <div id="otp-step" style="display:none;">
+      <h1>Verification Code</h1>
+      <p class="sub">We've sent a security code to your email.</p>
+      <div class="err" id="otp-err">Incorrect or expired code.</div>
+      <div class="otp-inputs">
+        <input type="text" maxlength="1" class="otp-digit">
+        <input type="text" maxlength="1" class="otp-digit">
+        <input type="text" maxlength="1" class="otp-digit">
+        <input type="text" maxlength="1" class="otp-digit">
+        <input type="text" maxlength="1" class="otp-digit">
+        <input type="text" maxlength="1" class="otp-digit">
+      </div>
+      <button class="btn btn-brass" id="verify-btn">Enter Portal</button>
+      <button class="btn btn-ghost" style="margin-top: 10px;" onclick="location.reload()">Back to Login</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
+    authDomain: "bank-85ec7.firebaseapp.com",
+    projectId: "bank-85ec7",
+    storageBucket: "bank-85ec7.firebasestorage.app",
+    messagingSenderId: "496220027439",
+    appId: "1:496220027439:web:0fc82eba00952f747ba4da",
+    measurementId: "G-S1XZ07MWG0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const functions = getFunctions(app);
+
+  const ADMIN_EMAIL = "aurixbank@gmail.com";
+  const ADMIN_PASS = "SafeHaven@72";
+
+  const loginBtn = document.getElementById('login-btn');
+  const verifyBtn = document.getElementById('verify-btn');
+  const otpDigits = Array.from(document.querySelectorAll('.otp-digit'));
+
+  loginBtn.addEventListener('click', async () => {
+    const email = document.getElementById('admin-email').value.trim();
+    const password = document.getElementById('admin-password').value;
+    const err = document.getElementById('login-err');
+    err.classList.remove('show');
+
+    if (email !== ADMIN_EMAIL || password !== ADMIN_PASS) {
+      err.textContent = "Access Denied: Invalid administrator credentials.";
+      err.classList.add('show');
+      return;
+    }
+
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Sending OTP...';
+
+    try {
+      const sendAdminOtp = httpsCallable(functions, 'sendAdminOtp');
+      await sendAdminOtp();
+      document.getElementById('login-step').style.display = 'none';
+      document.getElementById('otp-step').style.display = 'block';
+      otpDigits[0].focus();
+    } catch (e) {
+      err.textContent = "Failed to send OTP. Try again.";
+      err.classList.add('show');
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Verify Identity';
+    }
+  });
+
+  otpDigits.forEach((input, idx) => {
+    input.addEventListener('input', () => {
+      if (input.value && idx < otpDigits.length - 1) otpDigits[idx + 1].focus();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && idx > 0) otpDigits[idx - 1].focus();
+    });
+  });
+
+  verifyBtn.addEventListener('click', async () => {
+    const code = otpDigits.map(i => i.value).join('');
+    const err = document.getElementById('otp-err');
+    err.classList.remove('show');
+
+    if (code.length < 6) return;
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+
+    try {
+      const verifyAdminOtp = httpsCallable(functions, 'verifyAdminOtp');
+      const result = await verifyAdminOtp({ otp: code });
+      if (result.data.success) {
+        await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASS);
+        sessionStorage.setItem('admin_verified', 'true');
+        window.location.href = 'admin.html';
+      } else {
+        throw new Error("Invalid OTP code.");
+      }
+    } catch (e) {
+      err.textContent = e.message || "Verification failed.";
+      err.classList.add('show');
+    } finally {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Enter Portal';
+    }
+  });
+</script>
+</body>
+</html>
