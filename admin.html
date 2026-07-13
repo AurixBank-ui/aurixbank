@@ -10,35 +10,151 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <style>
+  /* ── Grid ───────────────────────────────────────────────────── */
   .admin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   @media (max-width:900px){ .admin-grid{ grid-template-columns:1fr; } }
-  .user-row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); gap:10px; }
-  .user-row:last-child{ border-bottom:none; }
-  .user-info .name{ font-weight:600; color:var(--paper); }
-  .user-info .email{ font-size:12px; color:var(--slate-dim); }
-  .badge{ font-size:10px; padding:2px 6px; border-radius:10px; margin-left:8px; text-transform:uppercase; }
-  .badge.flagged{ background:rgba(179,38,30,0.2); color:#E1948F; border:1px solid rgba(179,38,30,0.3); }
-  .action-btns{ display:flex; gap:8px; flex-shrink:0; }
-  .btn-sm{ padding:6px 10px; font-size:12px; }
-  .btn-danger-sm{ padding:6px 10px; font-size:12px; border:1px solid rgba(196,60,60,0.4); color:#B3261E; background:transparent; }
-  .btn-danger-sm:hover{ background:rgba(196,60,60,0.08); }
-  .modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(30,42,61,0.55); z-index:1000; align-items:center; justify-content:center; padding:20px; overflow-y:auto; }
-  .modal-backdrop.show{ display:flex; }
-  .modal{ background:var(--panel); border-radius:8px; padding:28px; max-width:520px; width:100%; border:1px solid var(--line); margin:auto; }
-  .form-field{ margin-bottom:15px; }
-  .form-field label{ display:block; font-size:12px; color:var(--slate-dim); margin-bottom:5px; }
-  .form-field input, .form-field select, .form-field textarea{ width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px; padding:10px; color:var(--paper); font-family:inherit; }
 
-  .txn-editor{ border:1px solid var(--line); border-radius:6px; max-height:220px; overflow-y:auto; margin-bottom:14px; }
-  .txn-editor-row{ display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--line); font-size:12.5px; }
-  .txn-editor-row:last-child{ border-bottom:none; }
-  .txn-editor-row .desc{ flex:1; color:var(--paper); }
-  .txn-editor-row .amt{ font-family:'IBM Plex Mono', monospace; width:90px; text-align:right; }
-  .txn-editor-row .amt.pos{ color:var(--good); }
-  .txn-editor-row .amt.neg{ color:var(--slate); }
-  .txn-editor-row .del-btn{ color:#B3261E; cursor:pointer; font-size:14px; flex-shrink:0; }
-  .txn-add-row{ display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:6px; margin-bottom:14px; }
-  .txn-add-row input, .txn-add-row select{ font-size:12.5px; padding:8px; }
+  /* ── User rows ──────────────────────────────────────────────── */
+  .user-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:13px 0; border-bottom:1px solid var(--line); gap:10px;
+  }
+  .user-row:last-child{ border-bottom:none; }
+  .user-info .name{ font-size:14px; font-weight:600; color:var(--paper); }
+  .user-info .email{ font-size:12px; color:var(--slate-dim); margin-top:2px; }
+  .action-btns{ display:flex; gap:8px; flex-shrink:0; }
+
+  /* ── Badges ─────────────────────────────────────────────────── */
+  .badge{
+    font-size:10.5px; padding:2px 8px; border-radius:20px;
+    font-weight:600; margin-left:6px; text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .badge.flagged{ background:rgba(179,38,30,0.12); color:#B3261E; border:1px solid rgba(179,38,30,0.2); }
+  .badge.pending{ background:rgba(196,150,60,0.12); color:#8A6A1E; border:1px solid rgba(196,150,60,0.2); }
+
+  /* ── Buttons ─────────────────────────────────────────────────── */
+  .btn-sm{ padding:6px 12px !important; font-size:12px !important; }
+  .btn-danger{
+    background:transparent; border:1px solid rgba(196,60,60,0.35);
+    color:#B3261E; padding:6px 12px; font-size:12px; border-radius:var(--radius);
+    cursor:pointer; transition:background .15s ease;
+  }
+  .btn-danger:hover{ background:rgba(196,60,60,0.08); }
+  .btn-warn{
+    background:transparent; border:1px solid rgba(196,150,60,0.4);
+    color:#8A6A1E; padding:6px 12px; font-size:12px; border-radius:var(--radius);
+    cursor:pointer; transition:background .15s ease;
+  }
+  .btn-warn:hover{ background:rgba(196,150,60,0.08); }
+
+  /* ── Modals ─────────────────────────────────────────────────── */
+  .modal-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(30,42,61,0.55);
+    z-index:1000; align-items:flex-start; justify-content:center;
+    padding:40px 20px; overflow-y:auto;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background:var(--panel); border-radius:8px; padding:28px;
+    width:100%; border:1px solid var(--line); margin:auto;
+  }
+  .modal h3{ font-family:'Fraunces', serif; font-size:19px; color:var(--paper); margin-bottom:6px; }
+  .modal .sub{ font-size:13px; color:var(--slate); margin-bottom:20px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:6px; }
+  .modal-actions .btn{ flex:1; }
+  .modal-actions button{ padding:11px 16px; }
+
+  /* ── User detail modal (wide) ───────────────────────────────── */
+  #detail-modal .modal{ max-width:620px; }
+
+  /* User header inside detail modal */
+  .user-header{
+    display:flex; align-items:center; gap:16px;
+    padding-bottom:20px; margin-bottom:20px; border-bottom:1px solid var(--line);
+  }
+  .user-avatar-lg{
+    width:56px; height:56px; border-radius:50%; flex-shrink:0;
+    background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces', serif; font-size:22px; color:var(--brass); overflow:hidden;
+  }
+  .user-avatar-lg img{ width:100%; height:100%; object-fit:cover; }
+  .user-header-info .uname{ font-family:'Fraunces', serif; font-size:18px; color:var(--paper); font-weight:600; }
+  .user-header-info .uemail{ font-size:13px; color:var(--slate-dim); margin-top:3px; }
+
+  /* Balance section */
+  .balance-section{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;
+  }
+  .balance-box{
+    background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:16px;
+  }
+  .balance-box .blbl{ font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--slate-dim); margin-bottom:6px; }
+  .balance-box .bval{ font-family:'Fraunces', serif; font-size:22px; color:var(--paper); margin-bottom:10px; }
+  .balance-box .btn{ width:100%; font-size:12px; padding:7px; }
+
+  /* Inline edit forms (hidden by default) */
+  .inline-edit{ display:none; margin-top:10px; }
+  .inline-edit.open{ display:block; }
+  .inline-edit input{
+    width:100%; background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    padding:9px 12px; font-size:13.5px; color:var(--paper); outline:none; margin-bottom:8px;
+  }
+  .inline-edit input:focus{ border-color:var(--brass); }
+  .inline-edit-actions{ display:flex; gap:8px; }
+  .inline-edit-actions .btn{ flex:1; font-size:12px; padding:8px; }
+
+  /* History section */
+  .section-head-row{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;
+  }
+  .section-head-row h4{ font-family:'Fraunces', serif; font-size:15px; color:var(--paper); }
+
+  .txn-list-admin{ max-height:200px; overflow-y:auto; border:1px solid var(--line); border-radius:6px; margin-bottom:16px; }
+  .txn-admin-row{
+    display:flex; align-items:center; gap:8px; padding:9px 12px;
+    border-bottom:1px solid var(--line); font-size:12.5px;
+  }
+  .txn-admin-row:last-child{ border-bottom:none; }
+  .txn-admin-row .tdesc{ flex:1; color:var(--paper); }
+  .txn-admin-row .tamt{ font-family:'IBM Plex Mono', monospace; width:86px; text-align:right; font-size:12px; }
+  .txn-admin-row .tamt.pos{ color:var(--good); }
+  .txn-admin-row .tamt.neg{ color:var(--slate); }
+  .txn-admin-row .tdel{ color:#B3261E; cursor:pointer; font-size:14px; flex-shrink:0; padding:2px 4px; }
+
+  /* Add transaction row */
+  .txn-add-form{ display:none; border:1px solid var(--line); border-radius:6px; padding:14px; margin-bottom:14px; }
+  .txn-add-form.open{ display:block; }
+  .txn-add-grid{ display:grid; grid-template-columns:2fr 1fr; gap:8px; margin-bottom:8px; }
+  .txn-add-grid input, .txn-add-form select{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    padding:9px 10px; font-size:13px; color:var(--paper); outline:none; width:100%;
+  }
+  .txn-add-grid input:focus, .txn-add-form select:focus{ border-color:var(--brass); }
+  .txn-add-form select{ margin-bottom:8px; }
+  .txn-add-form-actions{ display:flex; gap:8px; }
+  .txn-add-form-actions .btn{ flex:1; font-size:12px; padding:8px; }
+
+  /* Action buttons row */
+  .user-action-row{
+    display:flex; gap:10px; padding-top:18px; margin-top:4px; border-top:1px solid var(--line); flex-wrap:wrap;
+  }
+  .user-action-row .btn{ font-size:13px; padding:9px 14px; }
+
+  /* Approve modal */
+  #approve-modal .modal{ max-width:400px; }
+
+  /* Feedback */
+  .save-ok{
+    background:rgba(62,145,99,0.08); border:1px solid rgba(62,145,99,0.3); color:#2E7A4C;
+    font-size:13px; padding:10px 14px; border-radius:4px; margin-bottom:12px; display:none;
+  }
+  .save-ok.show{ display:block; }
+  .save-err{
+    background:rgba(196,60,60,0.08); border:1px solid rgba(196,60,60,0.3); color:#B3261E;
+    font-size:13px; padding:10px 14px; border-radius:4px; margin-bottom:12px; display:none;
+  }
+  .save-err.show{ display:block; }
 </style>
 </head>
 <body>
@@ -54,6 +170,7 @@
 
   <div class="main">
     <div class="topbar">
+      <div style="font-size:13px; color:var(--slate);">Aurix Bank — Admin Dashboard</div>
       <div class="topbar-right">
         <div class="avatar-btn">AD</div>
       </div>
@@ -63,11 +180,12 @@
       <div class="welcome-row">
         <div>
           <h1>Administrator Dashboard</h1>
-          <div class="lastlogin">Manage users, approvals, and system settings.</div>
+          <div class="lastlogin">Manage users, approvals, and accounts.</div>
         </div>
       </div>
 
       <div class="admin-grid">
+        <!-- Pending approvals -->
         <div class="card reveal">
           <div class="card-head"><h3>Pending Registrations</h3></div>
           <div id="pending-list">
@@ -75,10 +193,11 @@
           </div>
         </div>
 
+        <!-- Active users -->
         <div class="card reveal">
           <div class="card-head"><h3>Active Users</h3></div>
           <div id="user-list">
-            <div class="empty-state"><p>Loading users...</p></div>
+            <div class="empty-state"><p>Loading users…</p></div>
           </div>
         </div>
       </div>
@@ -86,83 +205,131 @@
   </div>
 </div>
 
-<!-- Approve Modal -->
+<!-- ── Approve Modal ─────────────────────────────────────────── -->
 <div class="modal-backdrop" id="approve-modal">
   <div class="modal">
     <h3>Approve Registration</h3>
     <p class="sub" id="approve-user-info"></p>
-    <div class="form-field">
-      <label>Initial Checking Balance ($)</label>
-      <input type="number" id="initial-balance" value="1000.00" step="0.01">
-    </div>
+    <p style="font-size:13.5px; color:var(--slate); background:var(--ink); border:1px solid var(--line); border-radius:5px; padding:12px 14px; margin-bottom:18px;">
+      Approving this account will automatically generate a realistic checking balance, savings balance, and two years of transaction history for this customer. You can edit these later from the user's profile.
+    </p>
+    <div class="save-err" id="approve-err">Something went wrong. Please try again.</div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('approve-modal')">Cancel</button>
-      <button class="btn btn-brass" id="confirm-approve-btn">Approve & Activate Account</button>
+      <button class="btn btn-brass" id="confirm-approve-btn">Approve &amp; Activate Account</button>
     </div>
   </div>
 </div>
 
-<!-- Reject Modal -->
+<!-- ── Reject Modal ──────────────────────────────────────────── -->
 <div class="modal-backdrop" id="reject-modal">
-  <div class="modal">
+  <div class="modal" style="max-width:420px;">
     <h3>Reject Registration</h3>
     <p class="sub" id="reject-user-info"></p>
     <div class="form-field">
-      <label>Reason (optional, internal note only)</label>
-      <textarea id="reject-reason" rows="3" placeholder="e.g. Could not verify identity"></textarea>
+      <label style="font-size:12px; color:var(--slate-dim); display:block; margin-bottom:6px;">Reason (internal note only)</label>
+      <textarea id="reject-reason" rows="3" placeholder="e.g. Could not verify identity"
+        style="width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px; padding:10px; color:var(--paper); font-family:inherit; resize:vertical;"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('reject-modal')">Cancel</button>
-      <button class="btn btn-danger-sm" id="confirm-reject-btn" style="padding:11px 22px; font-size:14px;">Reject Registration</button>
+      <button class="btn btn-danger" id="confirm-reject-btn" style="padding:11px 16px; font-size:13.5px; flex:1;">Reject Registration</button>
     </div>
   </div>
 </div>
 
-<!-- Edit User Modal -->
-<div class="modal-backdrop" id="edit-modal">
+<!-- ── User Detail Modal ─────────────────────────────────────── -->
+<div class="modal-backdrop" id="detail-modal">
   <div class="modal">
-    <h3>Edit User Account</h3>
-    <p class="sub" id="edit-user-info"></p>
-    <div class="form-field">
-      <label>Checking Balance ($)</label>
-      <input type="number" id="edit-checking" step="0.01">
-    </div>
-    <div class="form-field">
-      <label>Savings Balance ($)</label>
-      <input type="number" id="edit-savings" step="0.01">
-    </div>
-    <div class="form-field">
-      <label>Custom Bank Name</label>
-      <input type="text" id="edit-bank-name">
-    </div>
-    <div class="form-field">
-      <label>Account Status</label>
-      <select id="edit-status">
-        <option value="active">Active</option>
-        <option value="flagged">Flagged (Restricted — transactions blocked)</option>
-      </select>
+
+    <!-- User header -->
+    <div class="user-header">
+      <div class="user-avatar-lg" id="detail-avatar">?</div>
+      <div class="user-header-info">
+        <div class="uname" id="detail-name">—</div>
+        <div class="uemail" id="detail-email">—</div>
+        <div style="margin-top:6px;" id="detail-status-badge"></div>
+      </div>
+      <button onclick="closeModal('detail-modal')" style="margin-left:auto; background:none; border:none; font-size:20px; color:var(--slate-dim); cursor:pointer;">✕</button>
     </div>
 
-    <div class="form-field">
-      <label>Transaction history</label>
-      <div class="txn-editor" id="txn-editor-list"></div>
-      <div class="txn-add-row">
-        <input type="text" id="new-txn-desc" placeholder="Description">
-        <input type="number" id="new-txn-amount" placeholder="Amount" step="0.01">
-        <select id="new-txn-category">
-          <option>Shopping</option><option>Groceries</option><option>Dining</option>
-          <option>Salary</option><option>Transfer</option><option>Bill Payment</option>
-          <option>Card</option><option>Other</option>
-        </select>
-        <button class="btn btn-ghost btn-sm" id="add-txn-btn" type="button">Add</button>
+    <!-- Feedback banners -->
+    <div class="save-ok" id="detail-ok"></div>
+    <div class="save-err" id="detail-err"></div>
+
+    <!-- ── Balances ── -->
+    <div class="section-head-row" style="margin-bottom:12px;">
+      <h4>Account Balances</h4>
+    </div>
+    <div class="balance-section">
+
+      <!-- Checking -->
+      <div class="balance-box">
+        <div class="blbl">Checking</div>
+        <div class="bval" id="detail-checking-display">$0.00</div>
+        <button class="btn btn-ghost" id="edit-checking-btn" onclick="toggleEdit('checking')">Edit Balance</button>
+        <div class="inline-edit" id="checking-edit-form">
+          <input type="number" id="new-checking-val" placeholder="New checking balance" step="0.01">
+          <div class="inline-edit-actions">
+            <button class="btn btn-ghost" onclick="toggleEdit('checking')">Cancel</button>
+            <button class="btn btn-brass" onclick="saveBalance('checking')">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Savings -->
+      <div class="balance-box">
+        <div class="blbl">Savings</div>
+        <div class="bval" id="detail-savings-display">$0.00</div>
+        <button class="btn btn-ghost" id="edit-savings-btn" onclick="toggleEdit('savings')">Edit Balance</button>
+        <div class="inline-edit" id="savings-edit-form">
+          <input type="number" id="new-savings-val" placeholder="New savings balance" step="0.01">
+          <div class="inline-edit-actions">
+            <button class="btn btn-ghost" onclick="toggleEdit('savings')">Cancel</button>
+            <button class="btn btn-brass" onclick="saveBalance('savings')">Save</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
-      <button class="btn btn-brass" id="save-user-btn">Save Changes</button>
+    <!-- ── Transaction History ── -->
+    <div class="section-head-row">
+      <h4>Transaction History <span id="txn-count-badge" style="font-size:12px; color:var(--slate-dim); font-family:'Inter', sans-serif; font-weight:400;"></span></h4>
+      <button class="btn btn-ghost btn-sm" id="edit-history-btn" onclick="toggleHistoryEdit()">Edit History</button>
     </div>
-    <button class="btn btn-danger-sm" id="delete-user-btn" style="width:100%; margin-top:10px; padding:11px;">Delete this account permanently</button>
+
+    <!-- Transaction list -->
+    <div class="txn-list-admin" id="txn-admin-list">
+      <div style="padding:20px; text-align:center; color:var(--slate-dim); font-size:13px;">Loading…</div>
+    </div>
+
+    <!-- Add transaction form (hidden until "Edit History" clicked) -->
+    <div class="txn-add-form" id="txn-add-form">
+      <div style="font-size:12px; color:var(--slate-dim); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">Add transaction</div>
+      <div class="txn-add-grid">
+        <input type="text" id="new-txn-desc" placeholder="Description">
+        <input type="number" id="new-txn-amount" placeholder="Amount (neg = debit)" step="0.01">
+      </div>
+      <select id="new-txn-category">
+        <option>Shopping</option><option>Groceries</option><option>Dining</option>
+        <option>Salary</option><option>Transfer</option><option>Bill Payment</option>
+        <option>Card</option><option>Utilities</option><option>Healthcare</option>
+        <option>Transport</option><option>Travel</option><option>Subscription</option>
+        <option>Other</option>
+      </select>
+      <div class="txn-add-form-actions" style="margin-top:8px;">
+        <button class="btn btn-ghost" onclick="toggleHistoryEdit()">Done</button>
+        <button class="btn btn-brass" onclick="addTransaction()">Add transaction</button>
+      </div>
+    </div>
+
+    <!-- ── Action buttons ── -->
+    <div class="user-action-row">
+      <button class="btn btn-warn" id="flag-btn" onclick="toggleFlag()">⚑ Flag account</button>
+      <button class="btn btn-ghost" onclick="closeModal('detail-modal')" style="margin-left:auto;">Close</button>
+      <button class="btn btn-danger" id="delete-user-btn" onclick="deleteUser()">Delete account</button>
+    </div>
+
   </div>
 </div>
 
@@ -170,7 +337,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, where
+    getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -183,72 +350,225 @@
     measurementId: "G-S1XZ07MWG0"
   };
 
-  const app = initializeApp(firebaseConfig);
+  const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = getFirestore(app);
+  const db   = getFirestore(app);
 
   if (sessionStorage.getItem('admin_verified') !== 'true') {
     window.location.href = 'admin-login.html';
   }
 
-  // Collections tied to a user account — deleted together when an admin
-  // removes an account, since there's no backend to cascade this for us.
   const USER_DATA_COLLECTIONS = [
-    'users', 'accounts', 'transactions', 'cards',
-    'scheduledTransfers', 'chequeDeposits', 'loanApplications', 'loginHistory'
+    'users','accounts','transactions','cards',
+    'scheduledTransfers','chequeDeposits','loanApplications','loginHistory'
   ];
 
-  let selectedUserId = null;
-  let editingTxns = [];
+  // ── State ────────────────────────────────────────────────────
+  let selectedUserId  = null;
+  let selectedUserData = null;
+  let editingTxns     = [];
+  let historyEditOpen = false;
 
+  // ── Helpers ──────────────────────────────────────────────────
   function money(n) {
     const v = Number(n) || 0;
-    return `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
+    const abs = Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${v < 0 ? '−' : ''}$${abs}`;
+  }
+  function moneyAbs(n) {
+    return `$${Math.abs(Number(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  }
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+  function pick(arr)      { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function showFeedback(okId, errId, type, msg) {
+    document.getElementById(okId).classList.remove('show');
+    document.getElementById(errId).classList.remove('show');
+    if (type === 'ok')  { document.getElementById(okId).textContent  = msg; document.getElementById(okId).classList.add('show'); }
+    if (type === 'err') { document.getElementById(errId).textContent = msg; document.getElementById(errId).classList.add('show'); }
+    if (type === 'ok') setTimeout(() => document.getElementById(okId).classList.remove('show'), 3500);
   }
 
-  async function loadData() {
-    const usersSnap = await getDocs(collection(db, 'users'));
+  // ── Seed data — generated once at approval time ──────────────
+  // After approval, the admin never *has* to touch balances again.
+  // If they want to, the Edit Balance buttons let them.
+  const MERCHANTS = [
+    { name:'Amazon',            category:'Shopping' },
+    { name:'Walmart',           category:'Groceries' },
+    { name:'Target',            category:'Shopping' },
+    { name:'Whole Foods Market',category:'Groceries' },
+    { name:'Starbucks',         category:'Dining' },
+    { name:'Chipotle',          category:'Dining' },
+    { name:'Apple',             category:'Shopping' },
+    { name:'Netflix',           category:'Subscription' },
+    { name:'Spotify',           category:'Subscription' },
+    { name:'Uber',              category:'Transport' },
+    { name:'Delta Air Lines',   category:'Travel' },
+    { name:'Marriott Hotels',   category:'Travel' },
+    { name:'Shell',             category:'Transport' },
+    { name:'The Home Depot',    category:'Shopping' },
+    { name:'Best Buy',          category:'Shopping' },
+    { name:'CVS Pharmacy',      category:'Healthcare' },
+    { name:'AT&T',              category:'Utilities' },
+    { name:'Con Edison',        category:'Utilities' },
+  ];
+  const PEOPLE    = ['James Carter','Sarah Mitchell','David Reynolds','Laura Bennett','Michael Turner','Emily Clarke'];
+  const EMPLOYERS = ['Meridian Group','Northgate Consulting','Vantage Partners','Crestline Solutions'];
 
-    const pendingDocs = [];
-    const activeRows = [];
+  function generateSeedData(fullName) {
+    // Realistic total balance between $300k and $1.1M
+    const total    = Math.round(rand(300000, 1100000) * 100) / 100;
+    const chkRatio = rand(0.20, 0.38); // 20–38% in checking, rest in savings
+    const checkingBalance = Math.round(total * chkRatio * 100) / 100;
+    const savingsBalance  = Math.round((total - checkingBalance) * 100) / 100;
+
+    const start  = new Date('2023-01-01').getTime();
+    const end    = Date.now();
+    const count  = Math.floor(rand(44, 58)); // 44–58 transactions
+    const items  = [];
+
+    for (let i = 0; i < count; i++) {
+      const date = new Date(start + Math.random() * (end - start));
+      const isSalary = Math.random() < 0.12;
+      const isTransfer = Math.random() < 0.14;
+      let description, amount, category;
+
+      if (isSalary) {
+        description = `Salary — ${pick(EMPLOYERS)}`;
+        amount = Math.round(rand(4500, 9800) * 100) / 100;
+        category = 'Salary';
+      } else if (isTransfer) {
+        description = `Transfer to ${pick(PEOPLE)}`;
+        amount = -Math.round(rand(80, 2200) * 100) / 100;
+        category = 'Transfer';
+      } else {
+        const m = pick(MERCHANTS);
+        description = m.name;
+        category = m.category;
+        amount = -Math.round(rand(12, 480) * 100) / 100;
+      }
+      items.push({ date: date.toISOString(), description, amount, category });
+    }
+
+    items.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Opening deposit: makes the running total land exactly on the target balance
+    const sumGenerated = items.reduce((s, t) => s + t.amount, 0);
+    const opening = Math.round((total - sumGenerated) * 100) / 100;
+    items.unshift({
+      date: new Date('2023-01-01').toISOString(),
+      description: `Opening deposit — ${fullName}`,
+      amount: opening,
+      category: 'Opening balance'
+    });
+
+    return { checkingBalance, savingsBalance, transactions: items };
+  }
+
+  // ── Load admin data ──────────────────────────────────────────
+  async function loadData() {
+    let usersSnap;
+    try {
+      usersSnap = await getDocs(collection(db, 'users'));
+    } catch (e) {
+      console.error('Could not load users:', e);
+      return;
+    }
+
+    const pendingRows = [];
+    const activeRows  = [];
 
     for (const d of usersSnap.docs) {
       const data = d.data();
       if (data.isAdmin) continue;
 
       if (!data.isApproved && !data.isRejected) {
-        pendingDocs.push({ id: d.id, data });
+        pendingRows.push(`
+          <div class="user-row">
+            <div class="user-info">
+              <div class="name">${data.firstName} ${data.lastName}</div>
+              <div class="email">${data.email}</div>
+            </div>
+            <div class="action-btns">
+              <button class="btn btn-brass btn-sm" onclick="openApproveModal('${d.id}','${data.firstName} ${data.lastName}')">Approve</button>
+              <button class="btn btn-danger btn-sm" onclick="openRejectModal('${d.id}','${data.firstName} ${data.lastName}')">Reject</button>
+            </div>
+          </div>`);
         continue;
       }
+
       if (data.isApproved) {
-        const acctSnap = await getDoc(doc(db, 'accounts', d.id));
-        const acct = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
-        activeRows.push(`<div class="user-row">
-          <div class="user-info"><div class="name">${data.firstName} ${data.lastName} ${data.isFlagged ? '<span class="badge flagged">Flagged</span>' : ''}</div><div class="email">${data.email} · Bal: ${money((acct.checkingBalance || 0) + (acct.savingsBalance || 0))}</div></div>
-          <button class="btn btn-ghost btn-sm" onclick="openEditModal('${d.id}')">Edit</button>
-        </div>`);
+        let totalBal = '—';
+        try {
+          const acctSnap = await getDoc(doc(db, 'accounts', d.id));
+          if (acctSnap.exists()) {
+            const a = acctSnap.data();
+            totalBal = moneyAbs((a.checkingBalance||0) + (a.savingsBalance||0));
+          }
+        } catch (_) {}
+
+        const flagBadge = data.isFlagged ? '<span class="badge flagged">Flagged</span>' : '';
+        activeRows.push(`
+          <div class="user-row">
+            <div class="user-info">
+              <div class="name">${data.firstName} ${data.lastName}${flagBadge}</div>
+              <div class="email">${data.email} · ${totalBal}</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="openDetailModal('${d.id}')">View</button>
+          </div>`);
       }
     }
 
-    document.getElementById('pending-list').innerHTML = pendingDocs.length === 0
-      ? '<div class="empty-state"><p>No pending registrations.</p></div>'
-      : pendingDocs.map(({ id, data }) => `<div class="user-row">
-          <div class="user-info"><div class="name">${data.firstName} ${data.lastName}</div><div class="email">${data.email}</div></div>
-          <div class="action-btns">
-            <button class="btn btn-brass btn-sm" onclick="openApproveModal('${id}', '${data.firstName} ${data.lastName}')">Approve</button>
-            <button class="btn btn-danger-sm" onclick="openRejectModal('${id}', '${data.firstName} ${data.lastName}')">Reject</button>
-          </div>
-        </div>`).join('');
+    document.getElementById('pending-list').innerHTML = pendingRows.length
+      ? pendingRows.join('')
+      : '<div class="empty-state"><p>No pending registrations.</p></div>';
 
-    document.getElementById('user-list').innerHTML = activeRows.join('') || '<div class="empty-state"><p>No active users yet.</p></div>';
+    document.getElementById('user-list').innerHTML = activeRows.length
+      ? activeRows.join('')
+      : '<div class="empty-state"><p>No active users yet.</p></div>';
   }
 
+  // ── Approve modal ────────────────────────────────────────────
   window.openApproveModal = (id, name) => {
     selectedUserId = id;
     document.getElementById('approve-user-info').textContent = `Reviewing registration for ${name}`;
+    document.getElementById('approve-err').classList.remove('show');
     document.getElementById('approve-modal').classList.add('show');
   };
 
+  document.getElementById('confirm-approve-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('confirm-approve-btn');
+    btn.disabled = true; btn.textContent = 'Generating account…';
+
+    try {
+      // Get the user's full name for the opening deposit description
+      const userSnap = await getDoc(doc(db, 'users', selectedUserId));
+      const userData = userSnap.data();
+      const fullName = `${userData.firstName} ${userData.lastName}`;
+
+      // Generate seed data — this only runs once, at approval time
+      const seed = generateSeedData(fullName);
+
+      // Write everything to Firestore
+      await updateDoc(doc(db, 'users', selectedUserId), { isApproved: true });
+      await setDoc(doc(db, 'accounts', selectedUserId), {
+        checkingBalance: seed.checkingBalance,
+        savingsBalance:  seed.savingsBalance
+      });
+      await setDoc(doc(db, 'transactions', selectedUserId), { items: seed.transactions });
+
+      closeModal('approve-modal');
+      loadData();
+    } catch (e) {
+      console.error(e);
+      document.getElementById('approve-err').textContent = `Error: ${e.message}`;
+      document.getElementById('approve-err').classList.add('show');
+    }
+
+    btn.disabled = false; btn.textContent = 'Approve & Activate Account';
+  });
+
+  // ── Reject modal ─────────────────────────────────────────────
   window.openRejectModal = (id, name) => {
     selectedUserId = id;
     document.getElementById('reject-user-info').textContent = `Rejecting registration for ${name}`;
@@ -256,81 +576,9 @@
     document.getElementById('reject-modal').classList.add('show');
   };
 
-  function renderTxnEditor() {
-    const list = document.getElementById('txn-editor-list');
-    if (editingTxns.length === 0) {
-      list.innerHTML = `<div style="padding:14px; text-align:center; color:var(--slate-dim); font-size:12.5px;">No transactions.</div>`;
-      return;
-    }
-    const sorted = editingTxns
-      .map((t, i) => ({ ...t, _idx: i }))
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-    list.innerHTML = sorted.map(t => `
-      <div class="txn-editor-row">
-        <span class="desc">${t.description}</span>
-        <span class="amt ${t.amount >= 0 ? 'pos' : 'neg'}">${money(t.amount)}</span>
-        <span class="del-btn" data-idx="${t._idx}" title="Remove">✕</span>
-      </div>`).join('');
-    list.querySelectorAll('.del-btn').forEach(el => {
-      el.addEventListener('click', () => {
-        editingTxns.splice(Number(el.dataset.idx), 1);
-        renderTxnEditor();
-      });
-    });
-  }
-
-  document.getElementById('add-txn-btn').addEventListener('click', () => {
-    const desc = document.getElementById('new-txn-desc').value.trim();
-    const amount = parseFloat(document.getElementById('new-txn-amount').value);
-    const category = document.getElementById('new-txn-category').value;
-    if (!desc || isNaN(amount)) { alert('Enter a description and amount.'); return; }
-    editingTxns.push({ date: new Date().toISOString(), description: desc, amount, category });
-    document.getElementById('new-txn-desc').value = '';
-    document.getElementById('new-txn-amount').value = '';
-    renderTxnEditor();
-  });
-
-  window.openEditModal = async (uid) => {
-    selectedUserId = uid;
-    const userSnap = await getDoc(doc(db, 'users', uid));
-    const acctSnap = await getDoc(doc(db, 'accounts', uid));
-    const txnSnap = await getDoc(doc(db, 'transactions', uid));
-    const user = userSnap.data();
-    const acct = acctSnap.data() || { checkingBalance: 0, savingsBalance: 0 };
-    editingTxns = txnSnap.exists() ? (txnSnap.data().items || []) : [];
-
-    document.getElementById('edit-user-info').textContent = `Editing ${user.firstName} ${user.lastName}`;
-    document.getElementById('edit-checking').value = acct.checkingBalance || 0;
-    document.getElementById('edit-savings').value = acct.savingsBalance || 0;
-    document.getElementById('edit-bank-name').value = user.customBankName || 'Aurix Bank';
-    document.getElementById('edit-status').value = user.isFlagged ? 'flagged' : 'active';
-    renderTxnEditor();
-    document.getElementById('edit-modal').classList.add('show');
-  };
-
-  window.closeModal = (id) => document.getElementById(id).classList.remove('show');
-
-  // ---- Approve: pure Firestore updates, no backend needed ----
-  document.getElementById('confirm-approve-btn').addEventListener('click', async () => {
-    const btn = document.getElementById('confirm-approve-btn');
-    btn.disabled = true; btn.textContent = 'Processing...';
-    try {
-      const initialBalance = parseFloat(document.getElementById('initial-balance').value) || 0;
-      await updateDoc(doc(db, 'users', selectedUserId), { isApproved: true });
-      await updateDoc(doc(db, 'accounts', selectedUserId), { checkingBalance: initialBalance });
-      closeModal('approve-modal');
-      loadData();
-    } catch (e) { alert(e.message); }
-    btn.disabled = false; btn.textContent = 'Approve & Activate Account';
-  });
-
-  // ---- Reject: marks the account so it never gets approved and drops out
-  // of the pending list. The Firebase Auth account technically still
-  // exists (deleting another user's Auth account requires a backend we're
-  // not using), but they can never pass the isApproved gate at login. ----
   document.getElementById('confirm-reject-btn').addEventListener('click', async () => {
     const btn = document.getElementById('confirm-reject-btn');
-    btn.disabled = true; btn.textContent = 'Rejecting...';
+    btn.disabled = true; btn.textContent = 'Rejecting…';
     try {
       await updateDoc(doc(db, 'users', selectedUserId), {
         isRejected: true,
@@ -342,45 +590,195 @@
     btn.disabled = false; btn.textContent = 'Reject Registration';
   });
 
-  document.getElementById('save-user-btn').addEventListener('click', async () => {
-    const btn = document.getElementById('save-user-btn');
-    btn.disabled = true;
-    try {
-      await updateDoc(doc(db, 'users', selectedUserId), {
-        customBankName: document.getElementById('edit-bank-name').value,
-        isFlagged: document.getElementById('edit-status').value === 'flagged'
-      });
-      await updateDoc(doc(db, 'accounts', selectedUserId), {
-        checkingBalance: parseFloat(document.getElementById('edit-checking').value),
-        savingsBalance: parseFloat(document.getElementById('edit-savings').value)
-      });
-      await updateDoc(doc(db, 'transactions', selectedUserId), { items: editingTxns });
-      closeModal('edit-modal');
-      loadData();
-    } catch (e) { alert(e.message); }
-    btn.disabled = false;
-  });
+  // ── User Detail Modal ────────────────────────────────────────
+  window.openDetailModal = async (uid) => {
+    selectedUserId = uid;
+    historyEditOpen = false;
+    document.getElementById('txn-add-form').classList.remove('open');
+    document.getElementById('detail-ok').classList.remove('show');
+    document.getElementById('detail-err').classList.remove('show');
+    document.getElementById('checking-edit-form').classList.remove('open');
+    document.getElementById('savings-edit-form').classList.remove('open');
 
-  // ---- Delete: removes all of this account's Firestore data. The
-  // underlying Firebase Auth login can't be deleted without a backend, but
-  // deleting the users doc means isApproved reads as false forever, which
-  // blocks them at login the same as a rejected signup. ----
-  document.getElementById('delete-user-btn').addEventListener('click', async () => {
-    if (!confirm('This permanently deletes the account\'s balances, transaction history, and profile data, and blocks it from logging in again. This cannot be undone. Continue?')) return;
+    try {
+      const [userSnap, acctSnap, txnSnap] = await Promise.all([
+        getDoc(doc(db, 'users', uid)),
+        getDoc(doc(db, 'accounts', uid)),
+        getDoc(doc(db, 'transactions', uid))
+      ]);
+
+      selectedUserData = userSnap.exists() ? userSnap.data() : {};
+      const acct = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
+      editingTxns = txnSnap.exists() ? (txnSnap.data().items || []) : [];
+
+      // Header
+      const initials = `${(selectedUserData.firstName||'?')[0]}${(selectedUserData.lastName||'')[0]||''}`.toUpperCase();
+      const avatarEl = document.getElementById('detail-avatar');
+      if (selectedUserData.profilePictureURL) {
+        avatarEl.innerHTML = `<img src="${selectedUserData.profilePictureURL}" alt="">`;
+      } else {
+        avatarEl.textContent = initials;
+      }
+      document.getElementById('detail-name').textContent  = `${selectedUserData.firstName} ${selectedUserData.lastName}`;
+      document.getElementById('detail-email').textContent = selectedUserData.email || '—';
+
+      // Status badge
+      const flagged = selectedUserData.isFlagged;
+      document.getElementById('detail-status-badge').innerHTML = flagged
+        ? '<span class="badge flagged">⚑ Flagged</span>'
+        : '<span style="font-size:12px; color:var(--good);">● Active</span>';
+
+      // Flag button text
+      document.getElementById('flag-btn').textContent = flagged ? '⚑ Unflag account' : '⚑ Flag account';
+      document.getElementById('flag-btn').className   = flagged ? 'btn btn-ghost' : 'btn btn-warn';
+
+      // Balances
+      document.getElementById('detail-checking-display').textContent = moneyAbs(acct.checkingBalance || 0);
+      document.getElementById('detail-savings-display').textContent  = moneyAbs(acct.savingsBalance  || 0);
+      document.getElementById('new-checking-val').value = acct.checkingBalance || 0;
+      document.getElementById('new-savings-val').value  = acct.savingsBalance  || 0;
+
+      // Transactions
+      renderTxnList();
+      document.getElementById('detail-modal').classList.add('show');
+    } catch (e) {
+      console.error('Could not load user data:', e);
+      alert('Could not load this user. Check the console.');
+    }
+  };
+
+  function renderTxnList() {
+    const sorted = [...editingTxns].sort((a,b) => new Date(b.date) - new Date(a.date));
+    document.getElementById('txn-count-badge').textContent = `(${sorted.length})`;
+    const list = document.getElementById('txn-admin-list');
+
+    if (sorted.length === 0) {
+      list.innerHTML = `<div style="padding:20px; text-align:center; color:var(--slate-dim); font-size:13px;">No transactions.</div>`;
+      return;
+    }
+
+    list.innerHTML = sorted.slice(0, 60).map((t, displayIdx) => {
+      // Find real index for deletion
+      const realIdx = editingTxns.indexOf(t);
+      const isPos = t.amount >= 0;
+      return `
+        <div class="txn-admin-row">
+          <span class="tdesc">${t.description}</span>
+          <span class="tamt ${isPos ? 'pos' : 'neg'}">${money(t.amount)}</span>
+          ${historyEditOpen ? `<span class="tdel" data-idx="${editingTxns.indexOf(t)}" title="Remove">✕</span>` : ''}
+        </div>`;
+    }).join('');
+
+    if (historyEditOpen) {
+      list.querySelectorAll('.tdel').forEach(el => {
+        el.addEventListener('click', () => {
+          editingTxns.splice(Number(el.dataset.idx), 1);
+          renderTxnList();
+        });
+      });
+    }
+  }
+
+  // ── Toggle balance edit forms ─────────────────────────────────
+  window.toggleEdit = (side) => {
+    const form = document.getElementById(`${side}-edit-form`);
+    form.classList.toggle('open');
+  };
+
+  window.saveBalance = async (side) => {
+    const field    = side === 'checking' ? 'checkingBalance' : 'savingsBalance';
+    const inputId  = `new-${side}-val`;
+    const displayId= `detail-${side}-display`;
+    const newVal   = parseFloat(document.getElementById(inputId).value);
+
+    if (isNaN(newVal)) {
+      showFeedback('detail-ok','detail-err','err','Enter a valid number.');
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'accounts', selectedUserId), { [field]: newVal });
+      document.getElementById(displayId).textContent = moneyAbs(newVal);
+      document.getElementById(`${side}-edit-form`).classList.remove('open');
+      showFeedback('detail-ok','detail-err','ok',`${side.charAt(0).toUpperCase()+side.slice(1)} balance updated to ${moneyAbs(newVal)}.`);
+      loadData(); // refresh the user list
+    } catch (e) {
+      showFeedback('detail-ok','detail-err','err',`Could not save: ${e.message}`);
+    }
+  };
+
+  // ── Toggle history edit mode ──────────────────────────────────
+  window.toggleHistoryEdit = () => {
+    historyEditOpen = !historyEditOpen;
+    document.getElementById('txn-add-form').classList.toggle('open', historyEditOpen);
+    document.getElementById('edit-history-btn').textContent = historyEditOpen ? 'Save history' : 'Edit History';
+    if (!historyEditOpen) saveHistory();
+    else renderTxnList();
+  };
+
+  async function saveHistory() {
+    try {
+      await setDoc(doc(db, 'transactions', selectedUserId), { items: editingTxns });
+      showFeedback('detail-ok','detail-err','ok','Transaction history saved.');
+      renderTxnList();
+    } catch (e) {
+      showFeedback('detail-ok','detail-err','err',`Could not save history: ${e.message}`);
+    }
+  }
+
+  window.addTransaction = () => {
+    const desc     = document.getElementById('new-txn-desc').value.trim();
+    const amount   = parseFloat(document.getElementById('new-txn-amount').value);
+    const category = document.getElementById('new-txn-category').value;
+    if (!desc || isNaN(amount)) { alert('Enter a description and amount.'); return; }
+    editingTxns.push({ date: new Date().toISOString(), description: desc, amount, category });
+    document.getElementById('new-txn-desc').value   = '';
+    document.getElementById('new-txn-amount').value = '';
+    renderTxnList();
+  };
+
+  // ── Flag / Unflag ─────────────────────────────────────────────
+  window.toggleFlag = async () => {
+    const nowFlagged = !selectedUserData.isFlagged;
+    try {
+      await updateDoc(doc(db, 'users', selectedUserId), { isFlagged: nowFlagged });
+      selectedUserData.isFlagged = nowFlagged;
+
+      document.getElementById('detail-status-badge').innerHTML = nowFlagged
+        ? '<span class="badge flagged">⚑ Flagged</span>'
+        : '<span style="font-size:12px; color:var(--good);">● Active</span>';
+
+      document.getElementById('flag-btn').textContent = nowFlagged ? '⚑ Unflag account' : '⚑ Flag account';
+      document.getElementById('flag-btn').className   = nowFlagged ? 'btn btn-ghost' : 'btn btn-warn';
+
+      showFeedback('detail-ok','detail-err','ok',
+        nowFlagged ? 'Account flagged. The user will be blocked from logging in.' : 'Account unflagged. The user can log in again.');
+      loadData();
+    } catch (e) {
+      showFeedback('detail-ok','detail-err','err',`Could not update flag: ${e.message}`);
+    }
+  };
+
+  // ── Delete ────────────────────────────────────────────────────
+  window.deleteUser = async () => {
+    if (!confirm('This permanently deletes all balances, transactions, and profile data for this account and blocks it from logging in. This cannot be undone. Continue?')) return;
     const btn = document.getElementById('delete-user-btn');
     btn.disabled = true; btn.textContent = 'Deleting…';
     try {
       await Promise.all(
         USER_DATA_COLLECTIONS.map(col => deleteDoc(doc(db, col, selectedUserId)).catch(() => {}))
       );
-      closeModal('edit-modal');
+      closeModal('detail-modal');
       loadData();
     } catch (e) {
       alert(e.message);
     }
-    btn.disabled = false; btn.textContent = 'Delete this account permanently';
-  });
+    btn.disabled = false; btn.textContent = 'Delete account';
+  };
 
+  window.closeModal = (id) => document.getElementById(id).classList.remove('show');
+
+  // ── Auth guard ────────────────────────────────────────────────
   document.getElementById('logout-btn').addEventListener('click', async () => {
     sessionStorage.clear();
     await signOut(auth);
@@ -391,19 +789,13 @@
     if (user && user.email === 'aurixbank@gmail.com') loadData();
   });
 
-  // Scroll reveal — was missing from this page entirely, which is why both
-  // cards were permanently invisible (`.reveal` starts at opacity:0 until
-  // this runs).
+  // ── Scroll reveal ─────────────────────────────────────────────
   document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 90}ms`; });
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); revealObserver.unobserve(entry.target); }
-    });
-  }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
-  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
-  setTimeout(() => {
-    document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible'));
-  }, 2000);
+  const ro = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-visible'); ro.unobserve(e.target); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
+  setTimeout(() => { document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible')); }, 2000);
 </script>
 </body>
 </html>
