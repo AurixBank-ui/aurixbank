@@ -97,7 +97,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('approve-modal')">Cancel</button>
-      <button class="btn btn-brass" id="confirm-approve-btn">Approve & Create Account</button>
+      <button class="btn btn-brass" id="confirm-approve-btn">Approve & Activate Account</button>
     </div>
   </div>
 </div>
@@ -169,8 +169,9 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+  import {
+    getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, where
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
@@ -185,15 +186,20 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  const functions = getFunctions(app);
 
   if (sessionStorage.getItem('admin_verified') !== 'true') {
     window.location.href = 'admin-login.html';
   }
 
-  let selectedRegId = null;
+  // Collections tied to a user account — deleted together when an admin
+  // removes an account, since there's no backend to cascade this for us.
+  const USER_DATA_COLLECTIONS = [
+    'users', 'accounts', 'transactions', 'cards',
+    'scheduledTransfers', 'chequeDeposits', 'loanApplications', 'loginHistory'
+  ];
+
   let selectedUserId = null;
-  let editingTxns = []; // working copy of the selected user's transaction items while the Edit modal is open
+  let editingTxns = [];
 
   function money(n) {
     const v = Number(n) || 0;
@@ -201,43 +207,50 @@
   }
 
   async function loadData() {
-    const pendingSnap = await getDocs(query(collection(db, 'pendingRegistrations'), where('status', '==', 'pending')));
-    const pendingList = document.getElementById('pending-list');
-    pendingList.innerHTML = pendingSnap.empty ? '<div class="empty-state"><p>No pending registrations.</p></div>' :
-      pendingSnap.docs.map(d => {
-        const data = d.data();
-        return `<div class="user-row">
+    const usersSnap = await getDocs(collection(db, 'users'));
+
+    const pendingDocs = [];
+    const activeRows = [];
+
+    for (const d of usersSnap.docs) {
+      const data = d.data();
+      if (data.isAdmin) continue;
+
+      if (!data.isApproved && !data.isRejected) {
+        pendingDocs.push({ id: d.id, data });
+        continue;
+      }
+      if (data.isApproved) {
+        const acctSnap = await getDoc(doc(db, 'accounts', d.id));
+        const acct = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
+        activeRows.push(`<div class="user-row">
+          <div class="user-info"><div class="name">${data.firstName} ${data.lastName} ${data.isFlagged ? '<span class="badge flagged">Flagged</span>' : ''}</div><div class="email">${data.email} · Bal: ${money((acct.checkingBalance || 0) + (acct.savingsBalance || 0))}</div></div>
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal('${d.id}')">Edit</button>
+        </div>`);
+      }
+    }
+
+    document.getElementById('pending-list').innerHTML = pendingDocs.length === 0
+      ? '<div class="empty-state"><p>No pending registrations.</p></div>'
+      : pendingDocs.map(({ id, data }) => `<div class="user-row">
           <div class="user-info"><div class="name">${data.firstName} ${data.lastName}</div><div class="email">${data.email}</div></div>
           <div class="action-btns">
-            <button class="btn btn-brass btn-sm" onclick="openApproveModal('${d.id}', '${data.firstName} ${data.lastName}')">Approve</button>
-            <button class="btn btn-danger-sm" onclick="openRejectModal('${d.id}', '${data.firstName} ${data.lastName}')">Reject</button>
+            <button class="btn btn-brass btn-sm" onclick="openApproveModal('${id}', '${data.firstName} ${data.lastName}')">Approve</button>
+            <button class="btn btn-danger-sm" onclick="openRejectModal('${id}', '${data.firstName} ${data.lastName}')">Reject</button>
           </div>
-        </div>`;
-      }).join('');
+        </div>`).join('');
 
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const userList = document.getElementById('user-list');
-    const rows = await Promise.all(usersSnap.docs.map(async d => {
-      const data = d.data();
-      if (data.isAdmin) return '';
-      const acctSnap = await getDoc(doc(db, 'accounts', d.id));
-      const acct = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
-      return `<div class="user-row">
-        <div class="user-info"><div class="name">${data.firstName} ${data.lastName} ${data.isFlagged ? '<span class="badge flagged">Flagged</span>' : ''}</div><div class="email">${data.email} · Bal: ${money((acct.checkingBalance || 0) + (acct.savingsBalance || 0))}</div></div>
-        <button class="btn btn-ghost btn-sm" onclick="openEditModal('${d.id}')">Edit</button>
-      </div>`;
-    }));
-    userList.innerHTML = rows.join('') || '<div class="empty-state"><p>No active users yet.</p></div>';
+    document.getElementById('user-list').innerHTML = activeRows.join('') || '<div class="empty-state"><p>No active users yet.</p></div>';
   }
 
   window.openApproveModal = (id, name) => {
-    selectedRegId = id;
+    selectedUserId = id;
     document.getElementById('approve-user-info').textContent = `Reviewing registration for ${name}`;
     document.getElementById('approve-modal').classList.add('show');
   };
 
   window.openRejectModal = (id, name) => {
-    selectedRegId = id;
+    selectedUserId = id;
     document.getElementById('reject-user-info').textContent = `Rejecting registration for ${name}`;
     document.getElementById('reject-reason').value = '';
     document.getElementById('reject-modal').classList.add('show');
@@ -297,24 +310,32 @@
 
   window.closeModal = (id) => document.getElementById(id).classList.remove('show');
 
+  // ---- Approve: pure Firestore updates, no backend needed ----
   document.getElementById('confirm-approve-btn').addEventListener('click', async () => {
     const btn = document.getElementById('confirm-approve-btn');
     btn.disabled = true; btn.textContent = 'Processing...';
     try {
-      const approve = httpsCallable(functions, 'approveRegistration');
-      await approve({ regId: selectedRegId, initialBalance: document.getElementById('initial-balance').value });
+      const initialBalance = parseFloat(document.getElementById('initial-balance').value) || 0;
+      await updateDoc(doc(db, 'users', selectedUserId), { isApproved: true });
+      await updateDoc(doc(db, 'accounts', selectedUserId), { checkingBalance: initialBalance });
       closeModal('approve-modal');
       loadData();
     } catch (e) { alert(e.message); }
-    btn.disabled = false; btn.textContent = 'Approve & Create Account';
+    btn.disabled = false; btn.textContent = 'Approve & Activate Account';
   });
 
+  // ---- Reject: marks the account so it never gets approved and drops out
+  // of the pending list. The Firebase Auth account technically still
+  // exists (deleting another user's Auth account requires a backend we're
+  // not using), but they can never pass the isApproved gate at login. ----
   document.getElementById('confirm-reject-btn').addEventListener('click', async () => {
     const btn = document.getElementById('confirm-reject-btn');
     btn.disabled = true; btn.textContent = 'Rejecting...';
     try {
-      const reject = httpsCallable(functions, 'rejectRegistration');
-      await reject({ regId: selectedRegId, reason: document.getElementById('reject-reason').value.trim() });
+      await updateDoc(doc(db, 'users', selectedUserId), {
+        isRejected: true,
+        rejectionReason: document.getElementById('reject-reason').value.trim()
+      });
       closeModal('reject-modal');
       loadData();
     } catch (e) { alert(e.message); }
@@ -340,13 +361,18 @@
     btn.disabled = false;
   });
 
+  // ---- Delete: removes all of this account's Firestore data. The
+  // underlying Firebase Auth login can't be deleted without a backend, but
+  // deleting the users doc means isApproved reads as false forever, which
+  // blocks them at login the same as a rejected signup. ----
   document.getElementById('delete-user-btn').addEventListener('click', async () => {
-    if (!confirm('This permanently deletes the account, its balances, and its full transaction history. This cannot be undone. Continue?')) return;
+    if (!confirm('This permanently deletes the account\'s balances, transaction history, and profile data, and blocks it from logging in again. This cannot be undone. Continue?')) return;
     const btn = document.getElementById('delete-user-btn');
     btn.disabled = true; btn.textContent = 'Deleting…';
     try {
-      const del = httpsCallable(functions, 'deleteUserAccount');
-      await del({ uid: selectedUserId });
+      await Promise.all(
+        USER_DATA_COLLECTIONS.map(col => deleteDoc(doc(db, col, selectedUserId)).catch(() => {}))
+      );
       closeModal('edit-modal');
       loadData();
     } catch (e) {

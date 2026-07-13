@@ -9,6 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   .authwrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
   .authcard{ width:100%; max-width:400px; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:40px 36px; position:relative; }
@@ -76,7 +77,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+  import { getFirestore, doc, setDoc, getDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBBi_s_M8qjRVvgusbz7XryozqKrdhsJ3Y",
@@ -90,14 +91,66 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const functions = getFunctions(app);
+  const db = getFirestore(app);
+
+  // Same EmailJS project used everywhere else — different template just
+  // for the admin security code.
+  const EMAILJS_SERVICE_ID = "service_k8iij0s";
+  const EMAILJS_ADMIN_OTP_TEMPLATE_ID = "template_aw83091"; // ← replace with your real template ID
+  const EMAILJS_PUBLIC_KEY = "cXqOs1dUmERO4NKdN";
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
   const ADMIN_EMAIL = "aurixbank@gmail.com";
+  const OTP_TTL_MS = 10 * 60 * 1000;
 
   const loginBtn = document.getElementById('login-btn');
   const verifyBtn = document.getElementById('verify-btn');
   const backBtn = document.getElementById('back-btn');
   const otpDigits = Array.from(document.querySelectorAll('.otp-digit'));
+
+  function generateOtp() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  async function sendAdminOtp() {
+    const otp = generateOtp();
+    const expiresAt = Timestamp.fromMillis(Date.now() + OTP_TTL_MS);
+
+    await setDoc(doc(db, 'adminLoginTokens', ADMIN_EMAIL), {
+      otp,
+      expiresAt,
+      attempts: 0
+    });
+
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ADMIN_OTP_TEMPLATE_ID, {
+      to_email: ADMIN_EMAIL,
+      otp_code: otp
+    });
+  }
+
+  async function verifyAdminOtp(entered) {
+    const ref = doc(db, 'adminLoginTokens', ADMIN_EMAIL);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) return { success: false, message: 'No code was requested. Please try again.' };
+    const data = snap.data();
+
+    if (Date.now() > data.expiresAt.toMillis()) {
+      await deleteDoc(ref);
+      return { success: false, message: 'Code expired. Please try again.' };
+    }
+    if (data.attempts >= 5) {
+      await deleteDoc(ref);
+      return { success: false, message: 'Too many attempts. Please try again.' };
+    }
+    if (data.otp !== entered) {
+      await setDoc(ref, { ...data, attempts: data.attempts + 1 });
+      return { success: false, message: 'Incorrect code.' };
+    }
+
+    await deleteDoc(ref);
+    return { success: true };
+  }
 
   loginBtn.addEventListener('click', async () => {
     const email = document.getElementById('admin-email').value.trim();
@@ -106,7 +159,7 @@
     err.classList.remove('show');
 
     if (email.toLowerCase() !== ADMIN_EMAIL) {
-      err.textContent = "Access Denied: Invalid administrator credentials.";
+      err.textContent = 'Access Denied: Invalid administrator credentials.';
       err.classList.add('show');
       return;
     }
@@ -115,12 +168,12 @@
     loginBtn.textContent = 'Verifying…';
 
     try {
-      // Real Firebase Auth check — no password comparison happens in this
-      // browser code. Firebase rejects the wrong password server-side.
+      // Real Firebase Auth check — the password itself is never compared
+      // in this file. Set this account's password once in Firebase console
+      // (Authentication → Users), not in any source file.
       await signInWithEmailAndPassword(auth, email, password);
 
       loginBtn.textContent = 'Sending code…';
-      const sendAdminOtp = httpsCallable(functions, 'sendAdminOtp');
       await sendAdminOtp();
 
       document.getElementById('login-step').style.display = 'none';
@@ -128,9 +181,8 @@
       otpDigits[0].focus();
     } catch (e) {
       console.error(e);
-      err.textContent = "Access Denied: Invalid administrator credentials.";
+      err.textContent = 'Access Denied: Invalid administrator credentials.';
       err.classList.add('show');
-      // Don't leave a half-signed-in session if the OTP step failed
       await signOut(auth).catch(() => {});
     } finally {
       loginBtn.disabled = false;
@@ -166,16 +218,15 @@
     verifyBtn.textContent = 'Verifying...';
 
     try {
-      const verifyAdminOtp = httpsCallable(functions, 'verifyAdminOtp');
-      const result = await verifyAdminOtp({ otp: code });
-      if (result.data.success) {
+      const result = await verifyAdminOtp(code);
+      if (result.success) {
         sessionStorage.setItem('admin_verified', 'true');
         window.location.href = 'admin.html';
       } else {
-        throw new Error(result.data.message || "Invalid OTP code.");
+        throw new Error(result.message || 'Invalid OTP code.');
       }
     } catch (e) {
-      err.textContent = e.message || "Verification failed.";
+      err.textContent = e.message || 'Verification failed.';
       err.classList.add('show');
     } finally {
       verifyBtn.disabled = false;

@@ -158,7 +158,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { logLoginEvent } from './notifications.js';
 
@@ -320,6 +320,26 @@
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       currentUid = cred.user.uid;
+
+      // Check approval/flag status before proceeding to OTP. Firestore
+      // rules block writes for unapproved/flagged accounts regardless,
+      // but this stops them at the door with a clear message instead of
+      // letting them sit at a broken OTP screen.
+      const userSnap = await getDoc(doc(db, 'users', currentUid));
+      const userData = userSnap.exists() ? userSnap.data() : {};
+
+      if (!userData.isApproved) {
+        await signOut(auth);
+        passwordErr.textContent = 'Your account is still pending admin approval. You\'ll be able to log in once it\'s reviewed.';
+        passwordErr.classList.add('show');
+        return;
+      }
+      if (userData.isFlagged) {
+        await signOut(auth);
+        passwordErr.textContent = 'This account has been restricted. Please contact support.';
+        passwordErr.classList.add('show');
+        return;
+      }
 
       currentEmail = email;
       await sendOtp(email);

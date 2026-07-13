@@ -9,6 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   .authwrap{ min-height:calc(100vh - 76px); display:flex; align-items:center; justify-content:center; padding:60px 20px; }
   .authcard{ width:100%; max-width:440px; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:40px 36px; position:relative; }
@@ -16,9 +17,6 @@
     content:'AURIX'; position:absolute; top:20px; right:22px; font-family:'Fraunces', serif;
     font-size:10px; letter-spacing:0.24em; color:var(--brass-dim); border:1px solid var(--brass-dim);
     padding:4px 9px; border-radius:50%; transform:rotate(8deg); opacity:0.6;
-  }
-  .authcard.has-custom-name::before{
-    display:none;
   }
   .authcard h1{ font-family:'Fraunces', serif; font-size:28px; font-weight:600; color:var(--paper); margin-bottom:8px; }
   .authcard p.sub{ color:var(--slate); font-size:14px; margin-bottom:30px; }
@@ -62,7 +60,7 @@
 <div class="authwrap">
   <div class="authcard">
     <h1>Open your account</h1>
-    <p class="sub">Takes about two minutes. No branch visit needed.</p>
+    <p class="sub">Takes about two minutes. A team member reviews every new account before it's active.</p>
 
     <div class="err" id="signup-err">Please fill in all fields correctly before continuing.</div>
 
@@ -108,7 +106,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -125,128 +123,16 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  // Reuses the same EmailJS project as the OTP login flow — just a different
+  // template for "new registration" notices to the admin.
+  const EMAILJS_SERVICE_ID = "service_tdyeslf";
+  const EMAILJS_ADMIN_NOTICE_TEMPLATE_ID = "template_9li5znl"; // ← replace with your real template ID
+  const EMAILJS_PUBLIC_KEY = "_1t_TowbfSl-OBR4m";
+  const ADMIN_EMAIL = "aurixbank@gmail.com";
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
   const createBtn = document.getElementById('create-account-btn');
   const err = document.getElementById('signup-err');
-  const authcard = document.querySelector('.authcard');
-  const emailInput = document.getElementById('signup-email');
-
-  // UPDATED: Import collection and addDoc for pending registrations
-  import { collection, addDoc, serverTimestamp as serverTS, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-
-  // Check if email already has a custom bank name and hide AURIX oval if they do
-  async function checkCustomBankName(email) {
-    if (!email) {
-      authcard.classList.remove('has-custom-name');
-      return;
-    }
-    try {
-      const userRef = doc(db, 'users', email);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        if (userData.customBankName && userData.customBankName !== 'Aurix Bank') {
-          authcard.classList.add('has-custom-name');
-        } else {
-          authcard.classList.remove('has-custom-name');
-        }
-      } else {
-        authcard.classList.remove('has-custom-name');
-      }
-    } catch (e) {
-      authcard.classList.remove('has-custom-name');
-    }
-  }
-
-  // Listen for email input changes
-  emailInput.addEventListener('blur', () => {
-    checkCustomBankName(emailInput.value.trim());
-  });
-
-  // ---------- Seed data generation ----------
-  // Realistic-looking US merchants and individuals for a demo transaction history.
-  const MERCHANTS = [
-    { name: 'Amazon', category: 'Shopping' },
-    { name: 'Walmart', category: 'Groceries' },
-    { name: 'Target', category: 'Shopping' },
-    { name: 'Costco Wholesale', category: 'Groceries' },
-    { name: 'Whole Foods Market', category: 'Groceries' },
-    { name: 'Starbucks', category: 'Dining' },
-    { name: 'Chipotle Mexican Grill', category: 'Dining' },
-    { name: 'Trader Joe\'s', category: 'Groceries' },
-    { name: 'Apple', category: 'Shopping' },
-    { name: 'Netflix', category: 'Subscription' },
-    { name: 'Spotify', category: 'Subscription' },
-    { name: 'Uber', category: 'Transport' },
-    { name: 'Delta Air Lines', category: 'Travel' },
-    { name: 'Marriott Hotels', category: 'Travel' },
-    { name: 'Shell', category: 'Transport' },
-    { name: 'Chevron', category: 'Transport' },
-    { name: 'The Home Depot', category: 'Shopping' },
-    { name: 'Best Buy', category: 'Shopping' },
-    { name: 'CVS Pharmacy', category: 'Healthcare' },
-    { name: 'AT&T', category: 'Utilities' },
-    { name: 'Con Edison', category: 'Utilities' },
-    { name: 'Macy\'s', category: 'Shopping' }
-  ];
-  const PEOPLE = [
-    'James Carter', 'Sarah Mitchell', 'David Reynolds', 'Laura Bennett',
-    'Michael Turner', 'Emily Clarke', 'Robert Hayes', 'Jessica Morgan',
-    'William Foster', 'Amanda Brooks'
-  ];
-  const EMPLOYERS = ['Meridian Group', 'Northgate Consulting', 'Vantage Partners', 'Crestline Solutions'];
-
-  function rand(min, max) { return Math.random() * (max - min) + min; }
-  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
-  function generateSeedData(fullName) {
-    // Target combined balance: comfortably above $600,000
-    const totalBalance = Math.round(rand(650000, 1150000) * 100) / 100;
-    const checkingBalance = Math.round(totalBalance * rand(0.25, 0.35) * 100) / 100;
-    const savingsBalance = Math.round((totalBalance - checkingBalance) * 100) / 100;
-
-    const start = new Date('2022-01-01').getTime();
-    const end = Date.now();
-    const txCount = 46;
-    const items = [];
-
-    for (let i = 0; i < txCount; i++) {
-      const date = new Date(start + Math.random() * (end - start));
-      const isSalary = Math.random() < 0.12;
-      const isTransferOut = Math.random() < 0.15;
-      let description, amount, category;
-
-      if (isSalary) {
-        description = `Salary — ${pick(EMPLOYERS)}`;
-        amount = Math.round(rand(4200, 9800) * 100) / 100;
-        category = 'Salary';
-      } else if (isTransferOut) {
-        description = `Transfer to ${pick(PEOPLE)}`;
-        amount = -Math.round(rand(80, 2200) * 100) / 100;
-        category = 'Transfer';
-      } else {
-        const m = pick(MERCHANTS);
-        description = m.name;
-        category = m.category;
-        amount = -Math.round(rand(12, 480) * 100) / 100;
-      }
-
-      items.push({ date: date.toISOString(), description, amount, category });
-    }
-
-    items.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    // Balance the ledger: opening deposit makes the running total land exactly on totalBalance
-    const sumOfGenerated = items.reduce((s, t) => s + t.amount, 0);
-    const openingAmount = Math.round((totalBalance - sumOfGenerated) * 100) / 100;
-    items.unshift({
-      date: new Date('2022-01-01').toISOString(),
-      description: `Opening deposit — ${fullName}`,
-      amount: openingAmount,
-      category: 'Opening balance'
-    });
-
-    return { checkingBalance, savingsBalance, transactions: items };
-  }
 
   createBtn.addEventListener('click', async () => {
     const first = document.getElementById('first-name').value.trim();
@@ -256,7 +142,6 @@
     const pass = document.getElementById('signup-password').value;
     const confirm = document.getElementById('signup-confirm').value;
     err.classList.remove('show');
-    await checkCustomBankName(email);
 
     if (!first || !last || !email || !phone || !pass || !confirm) {
       err.textContent = 'Please fill in every field before continuing.';
@@ -278,26 +163,64 @@
     createBtn.textContent = 'Submitting registration…';
 
     try {
-      // UPDATED: Submit to pending registrations instead of creating account directly
-      await addDoc(collection(db, 'pendingRegistrations'), {
+      // Creates the real Firebase Auth account now — but it starts locked
+      // (isApproved: false). Firestore rules enforce that no client can
+      // set isApproved to true at creation time, only the admin can flip
+      // it later. Login checks this flag before letting anyone in.
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+
+      await setDoc(doc(db, 'users', cred.user.uid), {
         firstName: first,
         lastName: last,
         email: email,
         phone: phone,
-        password: pass,
-        status: 'pending',
-        createdAt: serverTS()
+        profilePictureURL: null,
+        isApproved: false,
+        isFlagged: false,
+        isAdmin: false,
+        customBankName: 'Aurix Bank',
+        createdAt: serverTimestamp()
       });
 
-      // Redirect to pending page
+      await setDoc(doc(db, 'accounts', cred.user.uid), {
+        checkingBalance: 0,
+        savingsBalance: 0
+      });
+
+      await setDoc(doc(db, 'transactions', cred.user.uid), { items: [] });
+
+      // Notify the admin by email. Best-effort — if this fails, the
+      // registration still went through and will show up in the admin
+      // dashboard's pending list regardless.
+      try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ADMIN_NOTICE_TEMPLATE_ID, {
+          to_email: ADMIN_EMAIL,
+          applicant_name: `${first} ${last}`,
+          applicant_email: email
+        });
+      } catch (notifyErr) {
+        console.error('Could not email admin about the new registration:', notifyErr);
+      }
+
+      // The new account is auto-signed-in by createUserWithEmailAndPassword —
+      // sign back out immediately so an unapproved account can't sit
+      // logged in.
+      await signOut(auth);
+
       window.location.href = `registration-pending.html?email=${encodeURIComponent(email)}`;
-
-
-
     } catch (e) {
       createBtn.disabled = false;
       createBtn.textContent = 'Continue to verification';
-      err.textContent = 'Something went wrong. Please try again.';
+
+      if (e.code === 'auth/email-already-in-use') {
+        err.textContent = 'An account with that email already exists. Try logging in instead.';
+      } else if (e.code === 'auth/invalid-email') {
+        err.textContent = "That email address doesn't look right.";
+      } else if (e.code === 'auth/weak-password') {
+        err.textContent = 'Choose a stronger password (at least 8 characters).';
+      } else {
+        err.textContent = 'Something went wrong creating your account. Please try again.';
+      }
       err.classList.add('show');
       console.error(e);
     }
