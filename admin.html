@@ -12,20 +12,33 @@
 <style>
   .admin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   @media (max-width:900px){ .admin-grid{ grid-template-columns:1fr; } }
-  .user-row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .user-row{ display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); gap:10px; }
   .user-row:last-child{ border-bottom:none; }
   .user-info .name{ font-weight:600; color:var(--paper); }
   .user-info .email{ font-size:12px; color:var(--slate-dim); }
   .badge{ font-size:10px; padding:2px 6px; border-radius:10px; margin-left:8px; text-transform:uppercase; }
   .badge.flagged{ background:rgba(179,38,30,0.2); color:#E1948F; border:1px solid rgba(179,38,30,0.3); }
-  .action-btns{ display:flex; gap:8px; }
+  .action-btns{ display:flex; gap:8px; flex-shrink:0; }
   .btn-sm{ padding:6px 10px; font-size:12px; }
-  .modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(30,42,61,0.55); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+  .btn-danger-sm{ padding:6px 10px; font-size:12px; border:1px solid rgba(196,60,60,0.4); color:#B3261E; background:transparent; }
+  .btn-danger-sm:hover{ background:rgba(196,60,60,0.08); }
+  .modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(30,42,61,0.55); z-index:1000; align-items:center; justify-content:center; padding:20px; overflow-y:auto; }
   .modal-backdrop.show{ display:flex; }
-  .modal{ background:var(--panel); border-radius:8px; padding:28px; max-width:450px; width:100%; border:1px solid var(--line); }
+  .modal{ background:var(--panel); border-radius:8px; padding:28px; max-width:520px; width:100%; border:1px solid var(--line); margin:auto; }
   .form-field{ margin-bottom:15px; }
   .form-field label{ display:block; font-size:12px; color:var(--slate-dim); margin-bottom:5px; }
-  .form-field input, .form-field select{ width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px; padding:10px; color:var(--paper); }
+  .form-field input, .form-field select, .form-field textarea{ width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px; padding:10px; color:var(--paper); font-family:inherit; }
+
+  .txn-editor{ border:1px solid var(--line); border-radius:6px; max-height:220px; overflow-y:auto; margin-bottom:14px; }
+  .txn-editor-row{ display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .txn-editor-row:last-child{ border-bottom:none; }
+  .txn-editor-row .desc{ flex:1; color:var(--paper); }
+  .txn-editor-row .amt{ font-family:'IBM Plex Mono', monospace; width:90px; text-align:right; }
+  .txn-editor-row .amt.pos{ color:var(--good); }
+  .txn-editor-row .amt.neg{ color:var(--slate); }
+  .txn-editor-row .del-btn{ color:#B3261E; cursor:pointer; font-size:14px; flex-shrink:0; }
+  .txn-add-row{ display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:6px; margin-bottom:14px; }
+  .txn-add-row input, .txn-add-row select{ font-size:12.5px; padding:8px; }
 </style>
 </head>
 <body>
@@ -89,6 +102,22 @@
   </div>
 </div>
 
+<!-- Reject Modal -->
+<div class="modal-backdrop" id="reject-modal">
+  <div class="modal">
+    <h3>Reject Registration</h3>
+    <p class="sub" id="reject-user-info"></p>
+    <div class="form-field">
+      <label>Reason (optional, internal note only)</label>
+      <textarea id="reject-reason" rows="3" placeholder="e.g. Could not verify identity"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('reject-modal')">Cancel</button>
+      <button class="btn btn-danger-sm" id="confirm-reject-btn" style="padding:11px 22px; font-size:14px;">Reject Registration</button>
+    </div>
+  </div>
+</div>
+
 <!-- Edit User Modal -->
 <div class="modal-backdrop" id="edit-modal">
   <div class="modal">
@@ -110,13 +139,30 @@
       <label>Account Status</label>
       <select id="edit-status">
         <option value="active">Active</option>
-        <option value="flagged">Flagged (Restricted)</option>
+        <option value="flagged">Flagged (Restricted — transactions blocked)</option>
       </select>
     </div>
+
+    <div class="form-field">
+      <label>Transaction history</label>
+      <div class="txn-editor" id="txn-editor-list"></div>
+      <div class="txn-add-row">
+        <input type="text" id="new-txn-desc" placeholder="Description">
+        <input type="number" id="new-txn-amount" placeholder="Amount" step="0.01">
+        <select id="new-txn-category">
+          <option>Shopping</option><option>Groceries</option><option>Dining</option>
+          <option>Salary</option><option>Transfer</option><option>Bill Payment</option>
+          <option>Card</option><option>Other</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="add-txn-btn" type="button">Add</button>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
       <button class="btn btn-brass" id="save-user-btn">Save Changes</button>
     </div>
+    <button class="btn btn-danger-sm" id="delete-user-btn" style="width:100%; margin-top:10px; padding:11px;">Delete this account permanently</button>
   </div>
 </div>
 
@@ -147,25 +193,41 @@
 
   let selectedRegId = null;
   let selectedUserId = null;
+  let editingTxns = []; // working copy of the selected user's transaction items while the Edit modal is open
+
+  function money(n) {
+    const v = Number(n) || 0;
+    return `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
+  }
 
   async function loadData() {
     const pendingSnap = await getDocs(query(collection(db, 'pendingRegistrations'), where('status', '==', 'pending')));
     const pendingList = document.getElementById('pending-list');
-    pendingList.innerHTML = pendingSnap.empty ? '<div class="empty-state"><p>No pending registrations.</p></div>' : 
+    pendingList.innerHTML = pendingSnap.empty ? '<div class="empty-state"><p>No pending registrations.</p></div>' :
       pendingSnap.docs.map(d => {
         const data = d.data();
-        return `<div class="user-row"><div class="user-info"><div class="name">${data.firstName} ${data.lastName}</div><div class="email">${data.email}</div></div><button class="btn btn-brass btn-sm" onclick="openApproveModal('${d.id}', '${data.firstName} ${data.lastName}')">Approve</button></div>`;
+        return `<div class="user-row">
+          <div class="user-info"><div class="name">${data.firstName} ${data.lastName}</div><div class="email">${data.email}</div></div>
+          <div class="action-btns">
+            <button class="btn btn-brass btn-sm" onclick="openApproveModal('${d.id}', '${data.firstName} ${data.lastName}')">Approve</button>
+            <button class="btn btn-danger-sm" onclick="openRejectModal('${d.id}', '${data.firstName} ${data.lastName}')">Reject</button>
+          </div>
+        </div>`;
       }).join('');
 
     const usersSnap = await getDocs(collection(db, 'users'));
     const userList = document.getElementById('user-list');
-    userList.innerHTML = (await Promise.all(usersSnap.docs.map(async d => {
+    const rows = await Promise.all(usersSnap.docs.map(async d => {
       const data = d.data();
       if (data.isAdmin) return '';
       const acctSnap = await getDoc(doc(db, 'accounts', d.id));
       const acct = acctSnap.exists() ? acctSnap.data() : { checkingBalance: 0, savingsBalance: 0 };
-      return `<div class="user-row"><div class="user-info"><div class="name">${data.firstName} ${data.lastName} ${data.isFlagged ? '<span class="badge flagged">Flagged</span>' : ''}</div><div class="email">${data.email} · Bal: $${(acct.checkingBalance + acct.savingsBalance).toFixed(2)}</div></div><button class="btn btn-ghost btn-sm" onclick="openEditModal('${d.id}')">Edit</button></div>`;
-    }))).join('');
+      return `<div class="user-row">
+        <div class="user-info"><div class="name">${data.firstName} ${data.lastName} ${data.isFlagged ? '<span class="badge flagged">Flagged</span>' : ''}</div><div class="email">${data.email} · Bal: ${money((acct.checkingBalance || 0) + (acct.savingsBalance || 0))}</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="openEditModal('${d.id}')">Edit</button>
+      </div>`;
+    }));
+    userList.innerHTML = rows.join('') || '<div class="empty-state"><p>No active users yet.</p></div>';
   }
 
   window.openApproveModal = (id, name) => {
@@ -174,17 +236,62 @@
     document.getElementById('approve-modal').classList.add('show');
   };
 
+  window.openRejectModal = (id, name) => {
+    selectedRegId = id;
+    document.getElementById('reject-user-info').textContent = `Rejecting registration for ${name}`;
+    document.getElementById('reject-reason').value = '';
+    document.getElementById('reject-modal').classList.add('show');
+  };
+
+  function renderTxnEditor() {
+    const list = document.getElementById('txn-editor-list');
+    if (editingTxns.length === 0) {
+      list.innerHTML = `<div style="padding:14px; text-align:center; color:var(--slate-dim); font-size:12.5px;">No transactions.</div>`;
+      return;
+    }
+    const sorted = editingTxns
+      .map((t, i) => ({ ...t, _idx: i }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    list.innerHTML = sorted.map(t => `
+      <div class="txn-editor-row">
+        <span class="desc">${t.description}</span>
+        <span class="amt ${t.amount >= 0 ? 'pos' : 'neg'}">${money(t.amount)}</span>
+        <span class="del-btn" data-idx="${t._idx}" title="Remove">✕</span>
+      </div>`).join('');
+    list.querySelectorAll('.del-btn').forEach(el => {
+      el.addEventListener('click', () => {
+        editingTxns.splice(Number(el.dataset.idx), 1);
+        renderTxnEditor();
+      });
+    });
+  }
+
+  document.getElementById('add-txn-btn').addEventListener('click', () => {
+    const desc = document.getElementById('new-txn-desc').value.trim();
+    const amount = parseFloat(document.getElementById('new-txn-amount').value);
+    const category = document.getElementById('new-txn-category').value;
+    if (!desc || isNaN(amount)) { alert('Enter a description and amount.'); return; }
+    editingTxns.push({ date: new Date().toISOString(), description: desc, amount, category });
+    document.getElementById('new-txn-desc').value = '';
+    document.getElementById('new-txn-amount').value = '';
+    renderTxnEditor();
+  });
+
   window.openEditModal = async (uid) => {
     selectedUserId = uid;
     const userSnap = await getDoc(doc(db, 'users', uid));
     const acctSnap = await getDoc(doc(db, 'accounts', uid));
+    const txnSnap = await getDoc(doc(db, 'transactions', uid));
     const user = userSnap.data();
-    const acct = acctSnap.data();
+    const acct = acctSnap.data() || { checkingBalance: 0, savingsBalance: 0 };
+    editingTxns = txnSnap.exists() ? (txnSnap.data().items || []) : [];
+
     document.getElementById('edit-user-info').textContent = `Editing ${user.firstName} ${user.lastName}`;
-    document.getElementById('edit-checking').value = acct.checkingBalance;
-    document.getElementById('edit-savings').value = acct.savingsBalance;
+    document.getElementById('edit-checking').value = acct.checkingBalance || 0;
+    document.getElementById('edit-savings').value = acct.savingsBalance || 0;
     document.getElementById('edit-bank-name').value = user.customBankName || 'Aurix Bank';
     document.getElementById('edit-status').value = user.isFlagged ? 'flagged' : 'active';
+    renderTxnEditor();
     document.getElementById('edit-modal').classList.add('show');
   };
 
@@ -202,6 +309,18 @@
     btn.disabled = false; btn.textContent = 'Approve & Create Account';
   });
 
+  document.getElementById('confirm-reject-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('confirm-reject-btn');
+    btn.disabled = true; btn.textContent = 'Rejecting...';
+    try {
+      const reject = httpsCallable(functions, 'rejectRegistration');
+      await reject({ regId: selectedRegId, reason: document.getElementById('reject-reason').value.trim() });
+      closeModal('reject-modal');
+      loadData();
+    } catch (e) { alert(e.message); }
+    btn.disabled = false; btn.textContent = 'Reject Registration';
+  });
+
   document.getElementById('save-user-btn').addEventListener('click', async () => {
     const btn = document.getElementById('save-user-btn');
     btn.disabled = true;
@@ -214,10 +333,26 @@
         checkingBalance: parseFloat(document.getElementById('edit-checking').value),
         savingsBalance: parseFloat(document.getElementById('edit-savings').value)
       });
+      await updateDoc(doc(db, 'transactions', selectedUserId), { items: editingTxns });
       closeModal('edit-modal');
       loadData();
     } catch (e) { alert(e.message); }
     btn.disabled = false;
+  });
+
+  document.getElementById('delete-user-btn').addEventListener('click', async () => {
+    if (!confirm('This permanently deletes the account, its balances, and its full transaction history. This cannot be undone. Continue?')) return;
+    const btn = document.getElementById('delete-user-btn');
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    try {
+      const del = httpsCallable(functions, 'deleteUserAccount');
+      await del({ uid: selectedUserId });
+      closeModal('edit-modal');
+      loadData();
+    } catch (e) {
+      alert(e.message);
+    }
+    btn.disabled = false; btn.textContent = 'Delete this account permanently';
   });
 
   document.getElementById('logout-btn').addEventListener('click', async () => {

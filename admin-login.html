@@ -68,14 +68,14 @@
         <input type="text" maxlength="1" class="otp-digit">
       </div>
       <button class="btn btn-brass" id="verify-btn">Enter Portal</button>
-      <button class="btn btn-ghost" style="margin-top: 10px;" onclick="location.reload()">Back to Login</button>
+      <button class="btn btn-ghost" style="margin-top: 10px;" id="back-btn">Back to Login</button>
     </div>
   </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 
   const firebaseConfig = {
@@ -93,10 +93,10 @@
   const functions = getFunctions(app);
 
   const ADMIN_EMAIL = "aurixbank@gmail.com";
-  const ADMIN_PASS = "SafeHaven@72";
 
   const loginBtn = document.getElementById('login-btn');
   const verifyBtn = document.getElementById('verify-btn');
+  const backBtn = document.getElementById('back-btn');
   const otpDigits = Array.from(document.querySelectorAll('.otp-digit'));
 
   loginBtn.addEventListener('click', async () => {
@@ -105,32 +105,49 @@
     const err = document.getElementById('login-err');
     err.classList.remove('show');
 
-    if (email !== ADMIN_EMAIL || password !== ADMIN_PASS) {
+    if (email.toLowerCase() !== ADMIN_EMAIL) {
       err.textContent = "Access Denied: Invalid administrator credentials.";
       err.classList.add('show');
       return;
     }
 
     loginBtn.disabled = true;
-    loginBtn.textContent = 'Sending OTP...';
+    loginBtn.textContent = 'Verifying…';
 
     try {
+      // Real Firebase Auth check — no password comparison happens in this
+      // browser code. Firebase rejects the wrong password server-side.
+      await signInWithEmailAndPassword(auth, email, password);
+
+      loginBtn.textContent = 'Sending code…';
       const sendAdminOtp = httpsCallable(functions, 'sendAdminOtp');
       await sendAdminOtp();
+
       document.getElementById('login-step').style.display = 'none';
       document.getElementById('otp-step').style.display = 'block';
       otpDigits[0].focus();
     } catch (e) {
-      err.textContent = "Failed to send OTP. Try again.";
+      console.error(e);
+      err.textContent = "Access Denied: Invalid administrator credentials.";
       err.classList.add('show');
+      // Don't leave a half-signed-in session if the OTP step failed
+      await signOut(auth).catch(() => {});
     } finally {
       loginBtn.disabled = false;
       loginBtn.textContent = 'Verify Identity';
     }
   });
 
+  backBtn.addEventListener('click', async () => {
+    await signOut(auth).catch(() => {});
+    document.getElementById('otp-step').style.display = 'none';
+    document.getElementById('login-step').style.display = 'block';
+    otpDigits.forEach(i => i.value = '');
+  });
+
   otpDigits.forEach((input, idx) => {
     input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^0-9]/g, '');
       if (input.value && idx < otpDigits.length - 1) otpDigits[idx + 1].focus();
     });
     input.addEventListener('keydown', (e) => {
@@ -152,11 +169,10 @@
       const verifyAdminOtp = httpsCallable(functions, 'verifyAdminOtp');
       const result = await verifyAdminOtp({ otp: code });
       if (result.data.success) {
-        await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASS);
         sessionStorage.setItem('admin_verified', 'true');
         window.location.href = 'admin.html';
       } else {
-        throw new Error("Invalid OTP code.");
+        throw new Error(result.data.message || "Invalid OTP code.");
       }
     } catch (e) {
       err.textContent = e.message || "Verification failed.";
